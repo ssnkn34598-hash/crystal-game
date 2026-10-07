@@ -784,3 +784,51 @@ body.loading #app { opacity: 0; }
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---------- Эксклюзивные кристаллы ---------- */
+.shop-section-excl {
+  color: #ffd98a;
+}
+
+.shop-item.locked {
+  background: rgba(0, 0, 0, 0.25);
+  border-style: dashed;
+  border-color: rgba(164, 156, 224, 0.25);
+}
+
+.shop-item.locked .shop-name {
+  color: #b7b0ee;
+}
+
+.shop-item.locked .shop-icon {
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.shop-item.locked .shop-icon svg {
+  filter: none;
+}
+
+.shop-how {
+  font-weight: 700;
+  color: #ffd98a;
+}
+
+/* Радужный алмаз: тот же цикл, что и на холсте (полный оборот за 14,4 с) */
+.shop-item.rainbow.active,
+.crystal-name.rainbow {
+  animation: hue-cycle 14.4s linear infinite;
+}
+
+.shop-item.rainbow:not(.locked) .shop-icon svg {
+  animation: hue-cycle-glow 14.4s linear infinite;
+}
+
+@keyframes hue-cycle {
+  from { filter: hue-rotate(0deg); }
+  to { filter: hue-rotate(360deg); }
+}
+
+@keyframes hue-cycle-glow {
+  from { filter: drop-shadow(0 0 6px hsl(0, 90%, 65%)) hue-rotate(0deg); }
+  to { filter: drop-shadow(0 0 6px hsl(0, 90%, 65%)) hue-rotate(360deg); }
+}

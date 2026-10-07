@@ -36,7 +36,17 @@
       glueName: 'Клей', glueDesc: 'Трещины от тапа',
       helperName: 'Помощник', helperDesc: 'Рост без трещин', perSec: '/сек',
       rhythmName: 'Широкий ритм', rhythmDesc: 'Окно «Идеально»', ms: 'мс',
-      crystalNames: ['Кварц «Искра»', 'Рубин «Алое сердце»', 'Изумруд «Лесной страж»', 'Аметист «Звёздная пыль»'],
+      crystalNames: {
+        quartz: 'Кварц «Искра»', ruby: 'Рубин «Алое сердце»', emerald: 'Изумруд «Лесной страж»',
+        amethyst: 'Аметист «Звёздная пыль»', topaz: 'Топаз «Солнечный луч»', sapphire: 'Сапфир «Глубина океана»',
+        tourmaline: 'Турмалин «Розовый рассвет»', peridot: 'Перидот «Весенний лист»', amber: 'Янтарь «Древний огонь»',
+        aquamarine: 'Аквамарин «Морская волна»',
+        moonstone: 'Лунный камень «Ночной свет»', friendship: 'Кристалл дружбы «Две искры»', diamond: 'Алмаз «Вечность»',
+      },
+      exclusives: 'Эксклюзивные',
+      exclMult: (f, cur) => `Осколки: <b>×${f}</b> от лучшего купленного (сейчас ×${cur})`,
+      howDaily7: 'Награда за 7-й день подряд', howFriend: 'Пригласи друга', howDays30: '30 дней в игре',
+      newCrystal: 'Новый кристалл!',
       soundOn: 'Включить звук', soundOff: 'Выключить звук', close: 'Закрыть',
       reviveTitle: 'Кристалл разбит!', reviveText: (n) => `Потерян размер <b>${n}</b>`,
       reviveBtn: 'Склеить кристалл за рекламу', reviveSkip: 'Нет, спасибо',
@@ -60,7 +70,17 @@
       glueName: 'Glue', glueDesc: 'Cracks per tap',
       helperName: 'Helper', helperDesc: 'Crack-free growth', perSec: '/sec',
       rhythmName: 'Wide Rhythm', rhythmDesc: '"Perfect" window', ms: 'ms',
-      crystalNames: ['Quartz "Spark"', 'Ruby "Scarlet Heart"', 'Emerald "Forest Guardian"', 'Amethyst "Stardust"'],
+      crystalNames: {
+        quartz: 'Quartz "Spark"', ruby: 'Ruby "Scarlet Heart"', emerald: 'Emerald "Forest Guardian"',
+        amethyst: 'Amethyst "Stardust"', topaz: 'Topaz "Sunbeam"', sapphire: 'Sapphire "Ocean Deep"',
+        tourmaline: 'Tourmaline "Pink Dawn"', peridot: 'Peridot "Spring Leaf"', amber: 'Amber "Ancient Fire"',
+        aquamarine: 'Aquamarine "Sea Wave"',
+        moonstone: 'Moonstone "Night Light"', friendship: 'Friendship Crystal "Two Sparks"', diamond: 'Diamond "Eternity"',
+      },
+      exclusives: 'Exclusive',
+      exclMult: (f, cur) => `Shards: <b>×${f}</b> of your best bought crystal (now ×${cur})`,
+      howDaily7: 'Reward for day 7 in a row', howFriend: 'Invite a friend', howDays30: '30 days in the game',
+      newCrystal: 'New crystal!',
       soundOn: 'Sound on', soundOff: 'Sound off', close: 'Close',
       reviveTitle: 'Crystal shattered!', reviveText: (n) => `Size lost: <b>${n}</b>`,
       reviveBtn: 'Glue it back — watch an ad', reviveSkip: 'No, thanks',
@@ -81,7 +101,11 @@
     return typeof v === 'function' ? v(...args) : v;
   };
   const pickLang = (code) => (RU_LANGS.includes(String(code || '').slice(0, 2).toLowerCase()) ? 'ru' : 'en');
-  const fmtMult = (m) => (lang === 'ru' ? String(m).replace('.', ',') : String(m));
+  // до двух знаков после запятой: 3,5 → «3,5», 4,375 → «4,38»
+  const fmtMult = (m) => {
+    const s = String(Math.round(m * 100) / 100);
+    return lang === 'ru' ? s.replace('.', ',') : s;
+  };
 
   // ================== Магазин ==================
   // Цены подобраны симуляцией: в первые 10 минут покупка примерно каждые 30–60 секунд
@@ -103,18 +127,54 @@
   ];
 
   const CRYSTALS = [
-    { hue: 195, mult: 1, price: 0 },       // Кварц «Искра»
-    { hue: 350, mult: 2, price: 900 },     // Рубин «Алое сердце»
-    { hue: 145, mult: 3.5, price: 5500 },  // Изумруд «Лесной страж»
-    { hue: 275, mult: 6, price: 26000 },   // Аметист «Звёздная пыль»
+    // Покупаются строго по порядку; индекс последнего купленного — state.crystalOwned
+    { id: 'quartz', hue: 195, mult: 1, price: 0 },
+    { id: 'ruby', hue: 350, mult: 2, price: 900 },
+    { id: 'emerald', hue: 145, mult: 3.5, price: 5500 },
+    { id: 'amethyst', hue: 275, mult: 6, price: 26000 },
+    { id: 'topaz', hue: 40, mult: 10, price: 90000 },
+    { id: 'sapphire', hue: 222, mult: 16, price: 300000 },
+    { id: 'tourmaline', hue: 320, mult: 26, price: 1000000 },
+    { id: 'peridot', hue: 85, mult: 42, price: 3300000 },
+    { id: 'amber', hue: 22, mult: 68, price: 11000000 },
+    { id: 'aquamarine', hue: 175, mult: 110, price: 36000000 },
   ];
+
+  // Эксклюзивы — только наградой. Множитель = factor × множитель лучшего купленного,
+  // поэтому они не устаревают. rainbow — оттенок переливается по кругу.
+  const EXCLUSIVES = [
+    { id: 'moonstone', hue: 250, factor: 1.25, how: 'howDaily7' },
+    { id: 'friendship', hue: 300, factor: 1.25, how: 'howFriend' },
+    { id: 'diamond', hue: 0, factor: 2, how: 'howDays30', rainbow: true },
+  ];
+
+  const shopIndex = (id) => CRYSTALS.findIndex((c) => c.id === id);
+  const crystalDef = (id) => CRYSTALS.find((c) => c.id === id) || EXCLUSIVES.find((c) => c.id === id) || CRYSTALS[0];
+  const isExclusive = (id) => EXCLUSIVES.some((c) => c.id === id);
+  const ownsCrystal = (id) => {
+    const i = shopIndex(id);
+    return i >= 0 ? i <= state.crystalOwned : state.exclusives.includes(id);
+  };
+
+  // Единственное место, где считается множитель кристалла: продажа, название, магазин
+  function crystalMult(id) {
+    const c = crystalDef(id);
+    if (c.factor) return c.factor * CRYSTALS[state.crystalOwned].mult;
+    return c.mult;
+  }
+
+  // Базовый оттенок кристалла; у радужного он идёт по кругу (полный оборот за ~14 с)
+  function crystalBaseHue(id, now = performance.now()) {
+    const c = crystalDef(id);
+    return c.rainbow ? (now / 40) % 360 : c.hue;
+  }
 
   const glueFactor = (l) => Math.pow(0.9, l);
   const perfectBefore = (l) => CFG.perfectBefore + l * 15;
   const perfectAfter = (l) => CFG.perfectAfter + l * 25;
   const perfectWindow = (l) => perfectBefore(l) + perfectAfter(l);
   const pct = (x) => Math.round(x * 100) + '%';
-  const crystalName = (i) => t('crystalNames')[i];
+  const crystalName = (id) => t('crystalNames')[id] || id;
   const upgradePrice = (u) => Math.ceil(u.basePrice * Math.pow(CFG.priceGrowth, state.upgrades[u.id]));
 
   // ================== DOM ==================
@@ -148,6 +208,7 @@
   const elShopShards = $('shopShards');
   const elUpgradeList = $('upgradeList');
   const elCrystalList = $('crystalList');
+  const elExclusiveList = $('exclusiveList');
 
   // ================== Состояние ==================
   const state = {
@@ -157,8 +218,9 @@
     record: 1,
     totalTaps: 0,
     upgrades: { glue: 0, helper: 0, rhythm: 0 },
-    crystalOwned: 0,         // самый дорогой купленный кристалл
-    crystal: 0,              // выбранный кристалл
+    crystalOwned: 0,         // индекс самого дорогого купленного кристалла в CRYSTALS
+    exclusives: [],          // id полученных эксклюзивных кристаллов
+    crystal: 'quartz',       // id выбранного кристалла (купленного или эксклюзивного)
     muted: false,
     savedAt: 0,              // время сохранения — по нему выбираем между облаком и localStorage
   };
@@ -216,7 +278,15 @@
         state.upgrades[u.id] = Math.min(u.max, Math.max(0, Math.floor(num(up[u.id], 0))));
       }
       state.crystalOwned = Math.min(CRYSTALS.length - 1, Math.max(0, Math.floor(num(d.crystalOwned, 0))));
-      state.crystal = Math.min(state.crystalOwned, Math.max(0, Math.floor(num(d.crystal, state.crystalOwned))));
+      state.exclusives = Array.isArray(d.exclusives)
+        ? EXCLUSIVES.map((c) => c.id).filter((id) => d.exclusives.includes(id))
+        : [];
+      // старые сохранения хранили выбранный кристалл номером (0–3) — переводим в id
+      let sel = d.crystal;
+      if (typeof sel === 'number' && isFinite(sel)) {
+        sel = CRYSTALS[Math.min(state.crystalOwned, Math.max(0, Math.floor(sel)))].id;
+      }
+      state.crystal = typeof sel === 'string' && ownsCrystal(sel) ? sel : CRYSTALS[state.crystalOwned].id;
     } catch (e) { /* повреждённое сохранение — начинаем заново */ }
   }
 
@@ -377,7 +447,7 @@
 
   function crystalHue() {
     // у каждого кристалла свой цвет, с ростом оттенок немного смещается
-    return CRYSTALS[state.crystal].hue + Math.min(state.size, 300) / 300 * 25;
+    return crystalBaseHue(state.crystal) + Math.min(state.size, 300) / 300 * 25;
   }
 
   function crystalRadius() {
@@ -690,7 +760,7 @@
   // чем бесконечно продавать крошечные
   function sellValue() {
     const s = state.size;
-    return Math.floor(s * (1 + Math.sqrt(s) / 4) * CRYSTALS[state.crystal].mult);
+    return Math.floor(s * (1 + Math.sqrt(s) / 4) * crystalMult(state.crystal));
   }
 
   // ================== Помощник ==================
@@ -833,22 +903,86 @@
     return true;
   }
 
-  function buyCrystal(i) {
-    if (i <= state.crystalOwned) {          // уже куплен — просто выбираем
-      state.crystal = i;
+  // Купить следующий кристалл магазина или выбрать уже имеющийся (любой, включая эксклюзив)
+  function buyCrystal(id) {
+    if (ownsCrystal(id)) {
+      state.crystal = id;
       return true;
     }
-    if (i !== state.crystalOwned + 1 || state.shards < CRYSTALS[i].price) return false;
+    const i = shopIndex(id);
+    if (i < 0 || i !== state.crystalOwned + 1 || state.shards < CRYSTALS[i].price) return false;
     state.shards -= CRYSTALS[i].price;
     state.crystalOwned = i;
-    state.crystal = i;
+    state.crystal = id;
     return true;
   }
 
+  // Выдать эксклюзивный кристалл (для будущих ежедневных наград, приглашений и т.п.)
+  function grantExclusive(id) {
+    if (!isExclusive(id) || state.exclusives.includes(id)) return false;
+    state.exclusives.push(id);
+    state.crystal = id;
+    appear = 0.3;
+    flash = 0.5;
+    flashHue = crystalBaseHue(id);
+    perfectGlow = 1;
+    const c = crystalCenter();
+    const r = crystalRadius();
+    rings.push({ x: c.x, y: c.y, r: r * 0.5, life: 1, hue: flashHue, w: 6, speed: 7 });
+    burst(c.x, c.y, 40, flashHue, true, { star: true, speed: 8 });
+    addFloater(t('newCrystal'), c.x, c.y - r * 1.15, '#ffe27a', 1.3);
+    sfx.perfect();
+    updateCrystalName();
+    updateUI();
+    saveNow();
+    return true;
+  }
+
+  const ICON_OUTER = '0,-1 0.56,-0.52 0.56,0.48 0,1 -0.56,0.48 -0.56,-0.52';
+  const ICON_INNER = '0.04,-0.56 0.28,-0.32 0.28,0.18 0.04,0.44 -0.2,0.18 -0.2,-0.32';
+
   function crystalIcon(hue) {
-    return `<svg viewBox="-1 -1.1 2 2.2"><polygon points="0,-1 0.56,-0.52 0.56,0.48 0,1 -0.56,0.48 -0.56,-0.52"
+    return `<svg viewBox="-1 -1.1 2 2.2"><polygon points="${ICON_OUTER}"
       fill="hsl(${hue},75%,55%)" stroke="hsl(${hue},100%,85%)" stroke-width="0.06"/>
-      <polygon points="0.04,-0.56 0.28,-0.32 0.28,0.18 0.04,0.44 -0.2,0.18 -0.2,-0.32" fill="hsl(${hue},90%,78%)"/></svg>`;
+      <polygon points="${ICON_INNER}" fill="hsl(${hue},90%,78%)"/></svg>`;
+  }
+
+  // Тёмный силуэт неполученного эксклюзива с замком
+  function lockedIcon() {
+    return `<svg viewBox="-1 -1.1 2 2.2"><polygon points="${ICON_OUTER}"
+      fill="#0a0720" stroke="#4a4280" stroke-width="0.06"/>
+      <g transform="translate(0 0.05)" fill="none" stroke="#a49ce0" stroke-width="0.09" stroke-linecap="round">
+        <path d="M-0.17,-0.05 v-0.12 a0.17,0.17 0 0 1 0.34,0 v0.12"/>
+        <rect x="-0.25" y="-0.05" width="0.5" height="0.38" rx="0.07" fill="#a49ce0" stroke="none"/>
+      </g></svg>`;
+  }
+
+  function crystalCard(c, locked) {
+    const color = c.rainbow ? 'hsl(0,90%,65%)' : `hsl(${c.hue},90%,65%)`;
+    return `
+      <div class="shop-item${c.rainbow ? ' rainbow' : ''}" data-crystal="${c.id}" style="--item-color: ${color}">
+        <div class="shop-icon">${locked ? lockedIcon() : crystalIcon(c.hue)}</div>
+        <div class="shop-info">
+          <div class="shop-name">${crystalName(c.id)}</div>
+          <div class="shop-desc"></div>
+        </div>
+        <button class="shop-buy" type="button"></button>
+      </div>`;
+  }
+
+  function multDesc(id) {
+    const c = crystalDef(id);
+    return c.factor
+      ? t('exclMult', fmtMult(c.factor), fmtMult(crystalMult(id)))
+      : `${t('sellMult')}: <b>×${fmtMult(crystalMult(id))}</b>`;
+  }
+
+  function setChoiceButton(el, btn, id) {
+    const selected = id === state.crystal;
+    el.classList.toggle('active', selected);
+    btn.textContent = selected ? t('selected') : t('select');
+    btn.disabled = selected;
+    btn.classList.add(selected ? 'done' : 'ghost');
   }
 
   // Карточки создаются один раз, дальше обновляются только тексты и состояния кнопок
@@ -862,15 +996,17 @@
         </div>
         <button class="shop-buy" type="button"></button>
       </div>`).join('');
-    elCrystalList.innerHTML = CRYSTALS.map((c, i) => `
-      <div class="shop-item" data-crystal="${i}" style="--item-color: hsl(${c.hue},90%,65%)">
-        <div class="shop-icon">${crystalIcon(c.hue)}</div>
-        <div class="shop-info">
-          <div class="shop-name">${crystalName(i)}</div>
-          <div class="shop-desc">${t('sellMult')}: <b>×${fmtMult(c.mult)}</b></div>
-        </div>
-        <button class="shop-buy" type="button"></button>
-      </div>`).join('');
+    elCrystalList.innerHTML = CRYSTALS.map((c) => crystalCard(c, false)).join('');
+    buildExclusives();
+  }
+
+  // Карточки эксклюзивов пересобираются, когда меняется набор полученных (иконка: силуэт ↔ кристалл)
+  let builtExclusives = '';
+  function buildExclusives() {
+    const key = state.exclusives.join(',');
+    if (key === builtExclusives && elExclusiveList.children.length) return;
+    builtExclusives = key;
+    elExclusiveList.innerHTML = EXCLUSIVES.map((c) => crystalCard(c, !state.exclusives.includes(c.id))).join('');
   }
 
   function renderShop() {
@@ -894,23 +1030,40 @@
       }
     }
     for (const el of elCrystalList.children) {
-      const i = +el.dataset.crystal;
+      const id = el.dataset.crystal;
+      const i = shopIndex(id);
       const c = CRYSTALS[i];
       const btn = el.querySelector('.shop-buy');
-      el.classList.toggle('active', i === state.crystal);
+      el.querySelector('.shop-desc').innerHTML = multDesc(id);
       btn.classList.remove('ghost', 'done');
-      if (i === state.crystal) {
-        btn.textContent = t('selected');
-        btn.disabled = true;
-        btn.classList.add('done');
-      } else if (i <= state.crystalOwned) {
-        btn.textContent = t('select');
-        btn.disabled = false;
-        btn.classList.add('ghost');
+      el.classList.remove('active');
+      if (i <= state.crystalOwned) {
+        setChoiceButton(el, btn, id);
       } else if (i === state.crystalOwned + 1) {
         btn.textContent = `${formatNum(c.price)} ◆`;
         btn.disabled = state.shards < c.price;
       } else {
+        btn.textContent = '🔒';
+        btn.disabled = true;
+      }
+    }
+
+    buildExclusives();
+    for (const el of elExclusiveList.children) {
+      const id = el.dataset.crystal;
+      const c = crystalDef(id);
+      const btn = el.querySelector('.shop-buy');
+      const owned = state.exclusives.includes(id);
+      btn.classList.remove('ghost', 'done');
+      el.classList.remove('active');
+      el.classList.toggle('locked', !owned);
+      if (owned) {
+        el.querySelector('.shop-desc').innerHTML = multDesc(id);
+        setChoiceButton(el, btn, id);
+      } else {
+        // как получить + во что он превратится — это и мотивирует
+        el.querySelector('.shop-desc').innerHTML =
+          `<span class="shop-how">🔒 ${t(c.how)}</span><br>${multDesc(id)}`;
         btn.textContent = '🔒';
         btn.disabled = true;
       }
@@ -927,9 +1080,9 @@
     if (item.dataset.up) {
       ok = bought = buyUpgrade(item.dataset.up);
     } else {
-      const i = +item.dataset.crystal;
-      bought = i > state.crystalOwned;
-      ok = buyCrystal(i);
+      const id = item.dataset.crystal;
+      bought = !ownsCrystal(id);
+      ok = buyCrystal(id);
       if (ok) { appear = 0.4; updateCrystalName(); }
     }
     if (!ok) return;
@@ -947,9 +1100,10 @@
   }
 
   function updateCrystalName() {
-    const c = CRYSTALS[state.crystal];
+    const c = crystalDef(state.crystal);
     elCrystalName.style.setProperty('--crystal-color', `hsl(${c.hue}, 90%, 72%)`);
-    elCrystalName.innerHTML = `${crystalName(state.crystal)}<small>×${fmtMult(c.mult)}</small>`;
+    elCrystalName.classList.toggle('rainbow', !!c.rainbow);
+    elCrystalName.innerHTML = `${crystalName(state.crystal)}<small>×${fmtMult(crystalMult(state.crystal))}</small>`;
   }
 
   // ---------- Выезжающие панели (магазин, лидеры) ----------
@@ -1017,6 +1171,7 @@
   elBackdrop.addEventListener('click', hideSheet);
   elUpgradeList.addEventListener('click', onShopClick);
   elCrystalList.addEventListener('click', onShopClick);
+  elExclusiveList.addEventListener('click', onShopClick);
 
   // ================== Отрисовка ==================
   function resize() {
@@ -1722,6 +1877,7 @@
       loadCloud, saveCloud, flushCloud,
       submitScore, getLeaderboard, isAuthorized, playerId, login,
       maybeShowFullscreen, canShowRewarded, showRewarded,
+      isLocal,
       get available() { return !!ysdk; },
     };
   })();
@@ -1891,6 +2047,8 @@
     booted = true;
     Platform.ready();
     Platform.submitScore(state.record);
+    // для локальной проверки наград: crystalDev.grant('diamond') в консоли
+    if (Platform.isLocal) window.crystalDev = { grant: grantExclusive };
   }
   boot();
 })();
