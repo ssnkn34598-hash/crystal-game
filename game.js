@@ -267,6 +267,8 @@
   // Короткий тон с огибающей; freqEnd — для глиссандо
   function tone(freq, dur, { type = 'sine', vol = 0.1, delay = 0, freqEnd = 0, attack = 0.005 } = {}) {
     if (!canPlay()) return;
+    // обертоны выше предела частоты дискретизации всё равно не слышны — пропускаем
+    if (freq >= audio.sampleRate * 0.45) return;
     const t = audio.currentTime + delay;
     const o = audio.createOscillator();
     const g = audio.createGain();
@@ -1825,7 +1827,7 @@
       prevRank = e.rank;
       return `${gap}<div class="lb-row${p.uniqueID && p.uniqueID === me ? ' me' : ''}">
         <span class="lb-rank${e.rank <= 3 ? ' top' : ''}">${e.rank}</span>
-        <span class="lb-avatar"${avatar ? ` style="background-image:url('${encodeURI(avatar)}')"` : ''}></span>
+        <span class="lb-avatar"${avatar ? ` style="background-image:url('${encodeURI(avatar).replace(/'/g, '%27')}')"` : ''}></span>
         <span class="lb-name">${escapeHtml(p.publicName || t('anon'))}</span>
         <span class="lb-score">${formatNum(e.score)}</span>
       </div>`;
@@ -1861,12 +1863,15 @@
   // ================== Старт ==================
   let booted = false;
   async function boot() {
-    const hasSdk = await Platform.init();
+    // любая ошибка платформы не должна мешать запуску: тогда играем с локальным сохранением
+    let cloud = null;
+    try {
+      if (await Platform.init()) cloud = await Platform.loadCloud();
+    } catch (e) { /* играем без SDK */ }
     lang = Platform.language();
 
     // берём более свежее сохранение: из облака или локальное
     const local = readLocal();
-    const cloud = hasSdk ? await Platform.loadCloud() : null;
     const pick = (cloud && (!local || (cloud.savedAt || 0) > (local.savedAt || 0))) ? cloud : local;
     applySave(pick);
 
