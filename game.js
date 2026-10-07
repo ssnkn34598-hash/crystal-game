@@ -11,8 +11,43 @@
     crackBase: 3,           // базовые трещины за тап, %
     crackPerSqrtSize: 1.15, // добавка трещин от размера, %
     maxCrackLines: 30,      // сколько линий трещин рисуется при 100%
+    helperIdleLimit: 20000, // помощник работает, если игрок что-то делал за последние N мс
+    priceGrowth: 1.5,       // каждый следующий уровень дороже в 1.5 раза
     saveKey: 'crystal_dont_break_v1',
   };
+
+  // ================== Магазин ==================
+  // Цены подобраны симуляцией: в первые 10 минут покупка примерно каждые 30–60 секунд
+  const UPGRADES = [
+    {
+      id: 'glue', name: 'Клей', icon: '🧴', basePrice: 150, max: 15,
+      desc: (l) => `Трещины от тапа: <b>−${pct(1 - glueFactor(l))}</b>` +
+        (l < 15 ? ` → −${pct(1 - glueFactor(l + 1))}` : ''),
+    },
+    {
+      id: 'helper', name: 'Помощник', icon: '🧚', basePrice: 250, max: 25,
+      desc: (l) => `Рост без трещин: <b>+${l}/сек</b>` + (l < 25 ? ` → +${l + 1}/сек` : ''),
+    },
+    {
+      id: 'rhythm', name: 'Широкий ритм', icon: '🎵', basePrice: 180, max: 6,
+      desc: (l) => `Окно «Идеально»: <b>${perfectWindow(l)} мс</b>` +
+        (l < 6 ? ` → ${perfectWindow(l + 1)} мс` : ''),
+    },
+  ];
+
+  const CRYSTALS = [
+    { name: 'Кварц «Искра»', short: 'Кварц', hue: 195, mult: 1, price: 0 },
+    { name: 'Рубин «Алое сердце»', short: 'Рубин', hue: 350, mult: 2, price: 900 },
+    { name: 'Изумруд «Лесной страж»', short: 'Изумруд', hue: 145, mult: 3.5, price: 5500 },
+    { name: 'Аметист «Звёздная пыль»', short: 'Аметист', hue: 275, mult: 6, price: 26000 },
+  ];
+
+  const glueFactor = (l) => Math.pow(0.9, l);
+  const perfectBefore = (l) => CFG.perfectBefore + l * 15;
+  const perfectAfter = (l) => CFG.perfectAfter + l * 25;
+  const perfectWindow = (l) => perfectBefore(l) + perfectAfter(l);
+  const pct = (x) => Math.round(x * 100) + '%';
+  const upgradePrice = (u) => Math.ceil(u.basePrice * Math.pow(CFG.priceGrowth, state.upgrades[u.id]));
 
   // ================== DOM ==================
   const $ = (id) => document.getElementById(id);
@@ -28,6 +63,15 @@
   const elSellBtn = $('sellBtn');
   const elSellValue = $('sellValue');
   const elHint = $('hint');
+  const elCrystalName = $('crystalName');
+  const elShopBtn = $('shopBtn');
+  const elShopDot = $('shopDot');
+  const elSheet = $('sheet');
+  const elSheetHead = $('sheetHead');
+  const elBackdrop = $('sheetBackdrop');
+  const elShopShards = $('shopShards');
+  const elUpgradeList = $('upgradeList');
+  const elCrystalList = $('crystalList');
 
   // ================== Состояние ==================
   const state = {
@@ -36,6 +80,9 @@
     cracks: 0,
     record: 1,
     totalTaps: 0,
+    upgrades: { glue: 0, helper: 0, rhythm: 0 },
+    crystalOwned: 0,         // самый дорогой купленный кристалл
+    crystal: 0,              // выбранный кристалл
   };
 
   let crackLines = [];       // геометрия трещин в единичных координатах
@@ -54,6 +101,9 @@
   let brokenUntil = 0;       // пока кристалл разбит — он не рисуется
   let lastPulseIdx = -1;
   let paused = false;
+  let lastInput = performance.now();
+  let helperAcc = 0;
+  let lastFrame = performance.now();
 
   // ================== Сохранение ==================
   function load() {
@@ -67,6 +117,12 @@
       state.cracks = Math.min(99, Math.max(0, num(d.cracks, 0)));
       state.record = Math.max(state.size, Math.floor(num(d.record, 1)));
       state.totalTaps = Math.max(0, Math.floor(num(d.totalTaps, 0)));
+      const up = d.upgrades || {};
+      for (const u of UPGRADES) {
+        state.upgrades[u.id] = Math.min(u.max, Math.max(0, Math.floor(num(up[u.id], 0))));
+      }
+      state.crystalOwned = Math.min(CRYSTALS.length - 1, Math.max(0, Math.floor(num(d.crystalOwned, 0))));
+      state.crystal = Math.min(state.crystalOwned, Math.max(0, Math.floor(num(d.crystal, state.crystalOwned))));
     } catch (e) { /* повреждённое сохранение — начинаем заново */ }
   }
 
@@ -135,6 +191,10 @@
     sell() {
       [660, 830, 990, 1320].forEach((f, i) => tone(f, 0.18, 'sine', 0.08, i * 0.06));
     },
+    buy() {
+      tone(523, 0.12, 'triangle', 0.09);
+      tone(784, 0.2, 'triangle', 0.09, 0.08);
+    },
   };
 
   // ================== Геометрия кристалла ==================
@@ -148,7 +208,8 @@
   const FACET_LIGHT = [0.95, 0.55, 0.3, 0.2, 0.45, 0.8];
 
   function crystalHue() {
-    return 190 + Math.min(state.size, 250) / 250 * 140; // от бирюзового к фиолетово-розовому
+    // у каждого кристалла свой цвет, с ростом оттенок немного смещается
+    return CRYSTALS[state.crystal].hue + Math.min(state.size, 300) / 300 * 25;
   }
 
   function crystalRadius() {
@@ -237,6 +298,7 @@
   function tap(px, py) {
     const now = performance.now();
     if (now < brokenUntil) return;
+    lastInput = now;
     initAudio();
     if (audio && audio.state === 'suspended') audio.resume();
     elHint.classList.add('hidden');
@@ -251,7 +313,8 @@
     }
 
     const { idx, offset } = pulseInfo(now);
-    const isPerfect = offset >= -CFG.perfectBefore && offset <= CFG.perfectAfter && idx !== lastPerfectPulse;
+    const rl = state.upgrades.rhythm;
+    const isPerfect = offset >= -perfectBefore(rl) && offset <= perfectAfter(rl) && idx !== lastPerfectPulse;
 
     state.totalTaps++;
     tapBounce = 1;
@@ -269,7 +332,8 @@
       vibrate(15);
     } else {
       perfectCombo = 0;
-      const crackAdd = CFG.crackBase + Math.sqrt(state.size) * CFG.crackPerSqrtSize;
+      const crackAdd = (CFG.crackBase + Math.sqrt(state.size) * CFG.crackPerSqrtSize) *
+        glueFactor(state.upgrades.glue);
       state.size += CFG.growNormal;
       state.cracks += crackAdd;
       sfx.tap();
@@ -334,6 +398,7 @@
   function sell() {
     const now = performance.now();
     if (now < brokenUntil || state.size < 2) return;
+    lastInput = now;
     initAudio();
     if (audio && audio.state === 'suspended') audio.resume();
 
@@ -357,8 +422,31 @@
     saveNow();
   }
 
+  // Цена растёт чуть быстрее размера, чтобы большой кристалл был выгоднее,
+  // чем бесконечно продавать крошечные
   function sellValue() {
-    return Math.floor(state.size);
+    const s = state.size;
+    return Math.floor(s * (1 + Math.sqrt(s) / 4) * CRYSTALS[state.crystal].mult);
+  }
+
+  // ================== Помощник ==================
+  function updateHelper(now, dt) {
+    const lvl = state.upgrades.helper;
+    if (!lvl || now < brokenUntil || now - lastInput > CFG.helperIdleLimit) {
+      helperAcc = 0;
+      return;
+    }
+    helperAcc += dt;
+    if (helperAcc < 1000) return;
+    helperAcc -= 1000;
+    state.size += lvl;
+    if (state.size > state.record) state.record = state.size;
+    const c = crystalCenter();
+    const r = crystalRadius();
+    addFloater(`+${lvl} 🧚`, c.x + r * 0.75, c.y - r * 0.55, '#c8ffe9', 0.75);
+    burst(c.x + r * 0.5, c.y - r * 0.4, 5, 150, false);
+    updateUI();
+    save();
   }
 
   function vibrate(p) {
@@ -421,7 +509,199 @@
     elCrackBar.classList.toggle('danger', pct >= 70);
     elSellValue.textContent = `+${formatNum(sellValue())} ◆`;
     elSellBtn.disabled = state.size < 2;
+    elShopDot.classList.toggle('on', canAffordSomething());
+    if (shopOpen) renderShop();
   }
+
+  // ================== Магазин: логика и интерфейс ==================
+  let shopOpen = false;
+
+  function canAffordSomething() {
+    if (UPGRADES.some((u) => state.upgrades[u.id] < u.max && state.shards >= upgradePrice(u))) return true;
+    const next = CRYSTALS[state.crystalOwned + 1];
+    return !!next && state.shards >= next.price;
+  }
+
+  function buyUpgrade(id) {
+    const u = UPGRADES.find((x) => x.id === id);
+    if (!u || state.upgrades[id] >= u.max) return false;
+    const price = upgradePrice(u);
+    if (state.shards < price) return false;
+    state.shards -= price;
+    state.upgrades[id]++;
+    return true;
+  }
+
+  function buyCrystal(i) {
+    if (i <= state.crystalOwned) {          // уже куплен — просто выбираем
+      state.crystal = i;
+      return true;
+    }
+    if (i !== state.crystalOwned + 1 || state.shards < CRYSTALS[i].price) return false;
+    state.shards -= CRYSTALS[i].price;
+    state.crystalOwned = i;
+    state.crystal = i;
+    return true;
+  }
+
+  function crystalIcon(hue) {
+    return `<svg viewBox="-1 -1.1 2 2.2"><polygon points="0,-1 0.56,-0.52 0.56,0.48 0,1 -0.56,0.48 -0.56,-0.52"
+      fill="hsl(${hue},75%,55%)" stroke="hsl(${hue},100%,85%)" stroke-width="0.06"/>
+      <polygon points="0.04,-0.56 0.28,-0.32 0.28,0.18 0.04,0.44 -0.2,0.18 -0.2,-0.32" fill="hsl(${hue},90%,78%)"/></svg>`;
+  }
+
+  // Карточки создаются один раз, дальше обновляются только тексты и состояния кнопок
+  function buildShop() {
+    elUpgradeList.innerHTML = UPGRADES.map((u) => `
+      <div class="shop-item" data-up="${u.id}">
+        <div class="shop-icon">${u.icon}</div>
+        <div class="shop-info">
+          <div class="shop-name">${u.name}<span class="shop-level"></span></div>
+          <div class="shop-desc"></div>
+        </div>
+        <button class="shop-buy" type="button"></button>
+      </div>`).join('');
+    elCrystalList.innerHTML = CRYSTALS.map((c, i) => `
+      <div class="shop-item" data-crystal="${i}" style="--item-color: hsl(${c.hue},90%,65%)">
+        <div class="shop-icon">${crystalIcon(c.hue)}</div>
+        <div class="shop-info">
+          <div class="shop-name">${c.name}</div>
+          <div class="shop-desc">Осколки при продаже: <b>×${String(c.mult).replace('.', ',')}</b></div>
+        </div>
+        <button class="shop-buy" type="button"></button>
+      </div>`).join('');
+  }
+
+  function renderShop() {
+    elShopShards.textContent = formatNum(state.shards);
+    for (const el of elUpgradeList.children) {
+      const u = UPGRADES.find((x) => x.id === el.dataset.up);
+      const l = state.upgrades[u.id];
+      const btn = el.querySelector('.shop-buy');
+      el.querySelector('.shop-level').textContent = ` · ур. ${l}${l >= u.max ? ' (макс.)' : ''}`;
+      el.querySelector('.shop-desc').innerHTML = u.desc(l);
+      btn.classList.remove('ghost');
+      if (l >= u.max) {
+        btn.textContent = 'Макс.';
+        btn.disabled = true;
+        btn.classList.add('done');
+      } else {
+        const price = upgradePrice(u);
+        btn.textContent = `${formatNum(price)} ◆`;
+        btn.disabled = state.shards < price;
+        btn.classList.remove('done');
+      }
+    }
+    for (const el of elCrystalList.children) {
+      const i = +el.dataset.crystal;
+      const c = CRYSTALS[i];
+      const btn = el.querySelector('.shop-buy');
+      el.classList.toggle('active', i === state.crystal);
+      btn.classList.remove('ghost', 'done');
+      if (i === state.crystal) {
+        btn.textContent = 'Выбран';
+        btn.disabled = true;
+        btn.classList.add('done');
+      } else if (i <= state.crystalOwned) {
+        btn.textContent = 'Выбрать';
+        btn.disabled = false;
+        btn.classList.add('ghost');
+      } else if (i === state.crystalOwned + 1) {
+        btn.textContent = `${formatNum(c.price)} ◆`;
+        btn.disabled = state.shards < c.price;
+      } else {
+        btn.textContent = '🔒';
+        btn.disabled = true;
+      }
+    }
+  }
+
+  function onShopClick(e) {
+    const btn = e.target.closest('.shop-buy');
+    if (!btn || btn.disabled) return;
+    const item = btn.closest('.shop-item');
+    initAudio();
+    lastInput = performance.now();
+    let ok = false, bought = false;
+    if (item.dataset.up) {
+      ok = bought = buyUpgrade(item.dataset.up);
+    } else {
+      const i = +item.dataset.crystal;
+      bought = i > state.crystalOwned;
+      ok = buyCrystal(i);
+      if (ok) { appear = 0.4; updateCrystalName(); }
+    }
+    if (!ok) return;
+    if (bought) {
+      sfx.buy();
+      vibrate(15);
+      bump(elShards);
+    } else {
+      sfx.tap();
+    }
+    btn.classList.remove('flash');
+    void btn.offsetWidth;
+    btn.classList.add('flash');
+    updateUI();
+    saveNow();
+  }
+
+  function updateCrystalName() {
+    const c = CRYSTALS[state.crystal];
+    elCrystalName.style.setProperty('--crystal-color', `hsl(${c.hue}, 90%, 72%)`);
+    elCrystalName.innerHTML = `${c.name}<small>×${String(c.mult).replace('.', ',')}</small>`;
+  }
+
+  function openShop() {
+    if (shopOpen) return;
+    shopOpen = true;
+    renderShop();
+    elSheet.style.transform = '';
+    elSheet.classList.add('open');
+    elBackdrop.classList.add('open');
+    lastInput = performance.now();
+  }
+
+  function closeShop() {
+    if (!shopOpen) return;
+    shopOpen = false;
+    elSheet.style.transform = '';
+    elSheet.classList.remove('open');
+    elBackdrop.classList.remove('open');
+  }
+
+  // Свайп вниз за шапку панели закрывает магазин
+  (() => {
+    let startY = 0, dy = 0, dragging = false;
+    elSheetHead.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button')) return;
+      dragging = true;
+      startY = e.clientY;
+      dy = 0;
+      elSheet.classList.add('dragging');
+      elSheetHead.setPointerCapture(e.pointerId);
+    });
+    elSheetHead.addEventListener('pointermove', (e) => {
+      if (!dragging) return;
+      dy = Math.max(0, e.clientY - startY);
+      elSheet.style.transform = `translate(-50%, ${dy}px)`;
+    });
+    const end = () => {
+      if (!dragging) return;
+      dragging = false;
+      elSheet.classList.remove('dragging');
+      elSheet.style.transform = '';
+      if (dy > 80) closeShop();
+    };
+    elSheetHead.addEventListener('pointerup', end);
+    elSheetHead.addEventListener('pointercancel', end);
+  })();
+
+  elShopBtn.addEventListener('click', openShop);
+  $('sheetClose').addEventListener('click', closeShop);
+  elBackdrop.addEventListener('click', closeShop);
+  elUpgradeList.addEventListener('click', onShopClick);
+  elCrystalList.addEventListener('click', onShopClick);
 
   // ================== Отрисовка ==================
   function resize() {
@@ -658,7 +938,10 @@
 
   function frame(now) {
     requestAnimationFrame(frame);
-    if (paused) return;
+    if (paused) { lastFrame = now; return; }
+
+    updateHelper(now, Math.min(now - lastFrame, 250));
+    lastFrame = now;
 
     const glow = pulseGlow(now);
     const { idx } = pulseInfo(now);
@@ -682,6 +965,8 @@
   elSellBtn.addEventListener('click', sell);
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
+    if (e.code === 'Escape' || e.code === 'KeyM') { shopOpen ? closeShop() : (e.code === 'KeyM' && openShop()); return; }
+    if (shopOpen) return;
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); tap(); }
     if (e.code === 'KeyS') sell();
   });
@@ -732,6 +1017,8 @@
 
   // ================== Старт ==================
   load();
+  buildShop();
+  updateCrystalName();
   resize();
   syncCrackLines();
   updateUI();

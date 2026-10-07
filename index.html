@@ -28,6 +28,7 @@
 
     <main class="stage" id="stage">
       <canvas id="game"></canvas>
+      <div class="crystal-name" id="crystalName"></div>
       <div class="hint" id="hint">Тапай по кристаллу в момент вспышки!</div>
     </main>
 
@@ -41,12 +42,37 @@
           <div class="crack-fill" id="crackFill"></div>
         </div>
       </div>
-      <button class="sell-btn" id="sellBtn" type="button">
-        <span class="sell-title">Продать</span>
-        <span class="sell-value" id="sellValue">+1 ◆</span>
-      </button>
+      <div class="actions">
+        <button class="sell-btn" id="sellBtn" type="button">
+          <span class="sell-title">Продать</span>
+          <span class="sell-value" id="sellValue">+1 ◆</span>
+        </button>
+        <button class="shop-btn" id="shopBtn" type="button" aria-label="Магазин">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1.4 11.2A2 2 0 0 1 16.6 20H7.4a2 2 0 0 1-2-1.8L4 7Z"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7"/></svg>
+          <span>Магазин</span>
+          <i class="shop-dot" id="shopDot"></i>
+        </button>
+      </div>
     </footer>
   </div>
+
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
+  <section class="sheet" id="sheet" role="dialog" aria-modal="true" aria-labelledby="sheetTitle">
+    <div class="sheet-head" id="sheetHead">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="sheetTitle">Магазин</h2>
+        <div class="sheet-balance"><span id="shopShards">0</span> ◆</div>
+        <button class="sheet-close" id="sheetClose" type="button" aria-label="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body" id="sheetBody">
+      <h3 class="shop-section">Улучшения</h3>
+      <div class="shop-list" id="upgradeList"></div>
+      <h3 class="shop-section">Кристаллы</h3>
+      <div class="shop-list" id="crystalList"></div>
+    </div>
+  </section>
 
   <script src="game.js"></script>
 </body>
