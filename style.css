@@ -233,9 +233,9 @@ body {
 /* ---------- Имя кристалла ---------- */
 .crystal-name {
   position: absolute;
-  top: 8px;
-  left: 0;
-  right: 0;
+  top: 12px;
+  left: 50px;
+  right: 50px;
   text-align: center;
   font-size: 14px;
   font-weight: 600;
@@ -532,3 +532,39 @@ body {
 @keyframes buyflash {
   0% { filter: brightness(1.8); transform: scale(1.08); }
 }
+
+/* ---------- Кнопка звука ---------- */
+.sound-btn {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  z-index: 2;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(160, 140, 255, 0.22);
+  border-radius: 14px;
+  background: rgba(120, 100, 255, 0.1);
+  color: #d8d4ff;
+  cursor: pointer;
+  transition: transform 0.08s, color 0.2s, background 0.2s;
+}
+
+.sound-btn:active { transform: scale(0.92); }
+
+.sound-btn svg {
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.sound-btn .spk { fill: currentColor; }
+.sound-btn .cross { display: none; }
+.sound-btn.muted { color: #7d76b3; background: rgba(255, 255, 255, 0.04); }
+.sound-btn.muted .wave { display: none; }
+.sound-btn.muted .cross { display: inline; }
