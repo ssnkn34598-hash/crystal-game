@@ -47,6 +47,17 @@
       exclMult: (f, cur) => `Осколки: <b>×${f}</b> от лучшего купленного (сейчас ×${cur})`,
       howDaily7: 'Награда за 7-й день подряд', howFriend: 'Пригласи друга', howDays30: '30 дней в игре',
       newCrystal: 'Новый кристалл!',
+      rewardsTitle: 'Награды за вход', rewardsBtn: 'Награды',
+      rewardsSub: (n) => (n > 1 ? `Серия: <b>${n} дн. подряд</b>. Заходи завтра — награда больше!` : 'Заходи каждый день — награды растут!'),
+      streakLost: 'Серия прервалась — начинаем с 1-го дня. Не пропускай!',
+      day: (n) => `День ${n}`, minutes: (n) => `${n} мин`,
+      goldenHour: 'Золотой час', goldenReward: (m) => `Золотой час ${m} мин (продажа ×2)`,
+      monthLabel: (n) => `Дней в игре: ${n}/30`,
+      todayReward: 'Сегодня', calendarBonus: 'Бонус календаря',
+      claim: 'Забрать', claimAd: 'Забрать ×2 за рекламу',
+      claimAdSub: (s) => `Посмотреть рекламу и получить: ${s}`,
+      nextIn: (s) => `Следующая награда через <b>${s}</b>`,
+      kilo: 'К', mega: 'М',
       soundOn: 'Включить звук', soundOff: 'Выключить звук', close: 'Закрыть',
       reviveTitle: 'Кристалл разбит!', reviveText: (n) => `Потерян размер <b>${n}</b>`,
       reviveBtn: 'Склеить кристалл за рекламу', reviveSkip: 'Нет, спасибо',
@@ -81,6 +92,17 @@
       exclMult: (f, cur) => `Shards: <b>×${f}</b> of your best bought crystal (now ×${cur})`,
       howDaily7: 'Reward for day 7 in a row', howFriend: 'Invite a friend', howDays30: '30 days in the game',
       newCrystal: 'New crystal!',
+      rewardsTitle: 'Daily Rewards', rewardsBtn: 'Rewards',
+      rewardsSub: (n) => (n > 1 ? `Streak: <b>${n} days in a row</b>. Come back tomorrow for more!` : 'Come back every day — rewards grow!'),
+      streakLost: 'Streak broken — back to day 1. Don\'t miss a day!',
+      day: (n) => `Day ${n}`, minutes: (n) => `${n} min`,
+      goldenHour: 'Golden Hour', goldenReward: (m) => `Golden Hour ${m} min (sales ×2)`,
+      monthLabel: (n) => `Days played: ${n}/30`,
+      todayReward: 'Today', calendarBonus: 'Calendar bonus',
+      claim: 'Claim', claimAd: 'Claim ×2 for watching an ad',
+      claimAdSub: (s) => `Watch an ad and get: ${s}`,
+      nextIn: (s) => `Next reward in <b>${s}</b>`,
+      kilo: 'K', mega: 'M',
       soundOn: 'Sound on', soundOff: 'Sound off', close: 'Close',
       reviveTitle: 'Crystal shattered!', reviveText: (n) => `Size lost: <b>${n}</b>`,
       reviveBtn: 'Glue it back — watch an ad', reviveSkip: 'No, thanks',
@@ -169,6 +191,27 @@
     return c.rainbow ? (now / 40) % 360 : c.hue;
   }
 
+  // ================== Награды за вход: таблицы ==================
+  // shards — множитель базовой награды, golden — минуты «Золотого часа»,
+  // crystal — эксклюзив (если уже есть, вместо него fallback × база)
+  const DAILY_REWARDS = [
+    { shards: 1 },
+    { shards: 1.5 },
+    { golden: 10 },
+    { shards: 2.5 },
+    { shards: 3 },
+    { golden: 20 },
+    { crystal: 'moonstone', fallback: 7 },
+  ];
+  const MONTH_DAYS = 30;
+  const MONTH_REWARDS = {
+    3: { shards: 5 },
+    7: { golden: 30 },
+    14: { shards: 15 },
+    21: { shards: 25, golden: 30 },
+    30: { crystal: 'diamond', fallback: 50 },
+  };
+
   const glueFactor = (l) => Math.pow(0.9, l);
   const perfectBefore = (l) => CFG.perfectBefore + l * 15;
   const perfectAfter = (l) => CFG.perfectAfter + l * 25;
@@ -209,6 +252,10 @@
   const elUpgradeList = $('upgradeList');
   const elCrystalList = $('crystalList');
   const elExclusiveList = $('exclusiveList');
+  const elGiftBtn = $('giftBtn');
+  const elGiftDot = $('giftDot');
+  const elGoldenBadge = $('goldenBadge');
+  const elRewardSheet = $('rewardSheet');
 
   // ================== Состояние ==================
   const state = {
@@ -223,6 +270,12 @@
     crystal: 'quartz',       // id выбранного кристалла (купленного или эксклюзивного)
     muted: false,
     savedAt: 0,              // время сохранения — по нему выбираем между облаком и localStorage
+    daily: {
+      last: '',              // локальная дата последней полученной награды, ГГГГ-ММ-ДД
+      streak: 0,             // какой день серии (1–7) получен последним
+      days: 0,               // дней в месячном календаре (0–30)
+    },
+    goldenUntil: 0,          // Date.now(), до которого действует «Золотой час»
   };
 
   let crackLines = [];       // геометрия трещин в единичных координатах
@@ -273,6 +326,13 @@
       state.totalTaps = Math.max(0, Math.floor(num(d.totalTaps, 0)));
       state.savedAt = Math.max(0, num(d.savedAt, 0));
       state.muted = d.muted === true;
+      const dl = d.daily || {};
+      state.daily = {
+        last: typeof dl.last === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dl.last) ? dl.last : '',
+        streak: Math.min(DAILY_REWARDS.length, Math.max(0, Math.floor(num(dl.streak, 0)))),
+        days: Math.min(MONTH_DAYS, Math.max(0, Math.floor(num(dl.days, 0)))),
+      };
+      state.goldenUntil = Math.max(0, num(d.goldenUntil, 0));
       const up = d.upgrades || {};
       for (const u of UPGRADES) {
         state.upgrades[u.id] = Math.min(u.max, Math.max(0, Math.floor(num(up[u.id], 0))));
@@ -758,9 +818,11 @@
 
   // Цена растёт чуть быстрее размера, чтобы большой кристалл был выгоднее,
   // чем бесконечно продавать крошечные
+  const valueForSize = (s, mult) => Math.floor(s * (1 + Math.sqrt(s) / 4) * mult);
+  const goldenActive = () => Date.now() < state.goldenUntil;
+
   function sellValue() {
-    const s = state.size;
-    return Math.floor(s * (1 + Math.sqrt(s) / 4) * crystalMult(state.crystal));
+    return valueForSize(state.size, crystalMult(state.crystal)) * (goldenActive() ? 2 : 1);
   }
 
   // ================== Помощник ==================
@@ -2005,6 +2067,232 @@
   elLbBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
   elLbBtn.addEventListener('click', openLeaderboard);
 
+  // ================== Награды за вход ==================
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const dateKey = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  const todayKey = () => dateKey(new Date());
+  const yesterdayKey = () => {
+    const d = new Date();
+    return dateKey(new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1));
+  };
+
+  // Награду можно забрать раз в день; если часы перевели назад — ждём «настоящего» нового дня
+  const canClaimDaily = () => todayKey() > state.daily.last;
+  const streakContinues = () => state.daily.last === yesterdayKey();
+  // какой день серии будет следующим (1–7, после 7-го — снова 1)
+  const nextStreakDay = () => (streakContinues() ? (state.daily.streak % DAILY_REWARDS.length) + 1 : 1);
+  // сколько дней будет в календаре после следующего получения (после 30 — сначала)
+  const nextMonthDay = () => (state.daily.days >= MONTH_DAYS ? 0 : state.daily.days) + 1;
+
+  // Лучший множитель среди всех кристаллов игрока (купленных и эксклюзивов)
+  function bestMult() {
+    const ids = CRYSTALS.slice(0, state.crystalOwned + 1).map((c) => c.id).concat(state.exclusives);
+    return Math.max(...ids.map(crystalMult));
+  }
+
+  // База растёт с прогрессом: продажа кристалла размером max(30, рекорд × 0.6), но не меньше 50
+  function baseReward() {
+    const size = Math.max(30, Math.floor(state.record * 0.6));
+    return Math.max(50, valueForSize(size, bestMult()));
+  }
+
+  // Переводит описание награды в конкретные осколки / минуты / кристалл
+  function resolveReward(def, base) {
+    const r = { shards: 0, golden: 0, crystal: null };
+    if (!def) return r;
+    if (def.shards) r.shards += Math.round(base * def.shards);
+    if (def.golden) r.golden += def.golden;
+    if (def.crystal) {
+      if (state.exclusives.includes(def.crystal)) r.shards += Math.round(base * def.fallback);
+      else r.crystal = def.crystal;
+    }
+    return r;
+  }
+
+  // Что игрок получит, если заберёт награду сейчас (double — за рекламу)
+  function pendingClaim(double) {
+    const base = baseReward();
+    const day = nextStreakDay();
+    const month = nextMonthDay();
+    const daily = resolveReward(DAILY_REWARDS[day - 1], base);
+    const bonus = resolveReward(MONTH_REWARDS[month], base);
+    const k = double ? 2 : 1;
+    return {
+      day, month, daily, bonus,
+      shards: (daily.shards + bonus.shards) * k,
+      golden: (daily.golden + bonus.golden) * k,
+      crystals: [daily.crystal, bonus.crystal].filter(Boolean),
+    };
+  }
+
+  const compactNum = (n) => {
+    const dec = (x) => {
+      const s = String(Math.round(x * 10) / 10);
+      return lang === 'ru' ? s.replace('.', ',') : s;
+    };
+    if (n >= 1e6) return dec(n / 1e6) + t('mega');
+    if (n >= 1e4) return dec(n / 1e3) + t('kilo');
+    return formatNum(n);
+  };
+
+  function rewardSummary(r) {
+    const parts = [];
+    if (r.shards) parts.push(`+${formatNum(r.shards)} ◆`);
+    if (r.golden) parts.push(t('goldenReward', r.golden));
+    (r.crystals || (r.crystal ? [r.crystal] : [])).forEach((id) => parts.push(crystalName(id)));
+    return parts.join(', ');
+  }
+
+  function addGolden(minutes) {
+    state.goldenUntil = Math.max(Date.now(), state.goldenUntil) + minutes * 60000;
+  }
+
+  function claimDaily(double) {
+    if (!canClaimDaily()) return;
+    const c = pendingClaim(double);
+    state.daily = { last: todayKey(), streak: c.day, days: c.month };
+    state.shards += c.shards;
+    if (c.golden) addGolden(c.golden);
+    hideSheet();
+    // эффекты — после того как панель уехала
+    setTimeout(() => {
+      const cc = crystalCenter();
+      const r = crystalRadius();
+      flash = 0.45;
+      flashHue = 45;
+      rings.push({ x: cc.x, y: cc.y, r: r * 0.5, life: 1, hue: 45, w: 6, speed: 7 });
+      burst(cc.x, cc.y, 34, 45, true, { star: true, speed: 8 });
+      if (c.shards) {
+        addFloater(`+${formatNum(c.shards)} ◆`, cc.x, cc.y - r * 0.3, '#9ff3ff', 1.4);
+        spawnCoins(cc.x, cc.y, Math.min(16, 6 + Math.floor(Math.log2(c.shards + 1) / 2)));
+      }
+      if (c.golden) addFloater(`${t('goldenHour')} +${t('minutes', c.golden)}`, cc.x, cc.y + r * 0.35, '#ffe27a', 1);
+      sfx.buy();
+      // эксклюзив выдаём последним: у него своя вспышка и надпись
+      c.crystals.forEach((id, i) => setTimeout(() => grantExclusive(id), 500 + i * 600));
+    }, 280);
+    bump(elShards);
+    updateUI();
+    saveNow();
+  }
+
+  function dayIcon(def) {
+    if (def.crystal) return crystalIcon(crystalDef(def.crystal).hue);
+    if (def.golden) return '⏳';
+    return '<span class="gem">◆</span>';
+  }
+
+  function renderRewards() {
+    const can = canClaimDaily();
+    const base = baseReward();
+    const next = nextStreakDay();
+    // день, который сейчас «сегодня»: если уже забрали — последний полученный
+    const current = can ? next : state.daily.streak;
+
+    $('rewardSub').innerHTML = can && state.daily.last && !streakContinues() && state.daily.streak > 0
+      ? t('streakLost')
+      : t('rewardsSub', can ? next - 1 : state.daily.streak);
+
+    $('daysRow').innerHTML = DAILY_REWARDS.map((def, i) => {
+      const day = i + 1;
+      const r = resolveReward(def, base);
+      const cls = day < current || (!can && day === current) ? 'claimed' : day === current ? 'today' : 'future';
+      const amount = r.crystal ? '' : r.shards ? compactNum(r.shards) : t('minutes', r.golden);
+      return `<div class="day-card ${cls}">
+        <span class="day-num">${t('day', day)}</span>
+        <span class="day-icon">${r.crystal ? dayIcon(def) : r.shards ? '<span class="gem">◆</span>' : '⏳'}</span>
+        <span class="day-amount">${amount || '&nbsp;'}</span>
+      </div>`;
+    }).join('');
+
+    const days = state.daily.days;
+    $('monthLabel').textContent = t('monthLabel', days);
+    $('monthFill').style.width = `${(days / MONTH_DAYS) * 100}%`;
+    const nextMark = Object.keys(MONTH_REWARDS).map(Number).find((d) => d > days);
+    $('monthMarks').innerHTML = Object.entries(MONTH_REWARDS).map(([d, def]) => {
+      d = Number(d);
+      const icon = def.crystal
+        ? crystalIcon(crystalDef(def.crystal).hue)
+        : `${def.shards ? '<span class="gem">◆</span>' : ''}${def.golden ? '⏳' : ''}`;
+      const cls = d <= days ? 'done' : d === nextMark ? 'next' : '';
+      return `<div class="month-mark ${cls}${def.crystal ? ' rainbow' : ''}" style="left:${(d / MONTH_DAYS) * 100}%">
+        <span class="month-mark-icon">${icon}</span>
+        <span class="month-mark-day">${d}</span>
+      </div>`;
+    }).join('');
+
+    $('rewardActions').hidden = !can;
+    $('rewardNext').hidden = can;
+    if (can) {
+      const c = pendingClaim(false);
+      const d2 = pendingClaim(true);
+      let html = `${t('todayReward')}: <b>${rewardSummary(c.daily)}</b>`;
+      if (c.bonus.shards || c.bonus.golden || c.bonus.crystal) {
+        html += `<br>${t('calendarBonus')} (${c.month}): <b>${rewardSummary(c.bonus)}</b>`;
+      }
+      $('rewardToday').innerHTML = html;
+      // за рекламу удваиваются осколки и минуты; если удваивать нечего — кнопку не показываем
+      const adBtn = $('claimAdBtn');
+      adBtn.hidden = !Platform.canShowRewarded() || (!d2.shards && !d2.golden);
+      $('claimAdSub').textContent = t('claimAdSub', rewardSummary(d2));
+    } else {
+      $('rewardToday').innerHTML = '';
+      updateRewardCountdown();
+    }
+  }
+
+  function updateRewardCountdown() {
+    const now = new Date();
+    const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const s = Math.max(0, Math.floor((midnight - now) / 1000));
+    $('rewardNext').innerHTML = t('nextIn', `${Math.floor(s / 3600)}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}`);
+  }
+
+  function openRewards() {
+    renderRewards();
+    showSheet(elRewardSheet);
+  }
+
+  elGiftBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  elGiftBtn.addEventListener('click', openRewards);
+  enableSwipe(elRewardSheet);
+  $('claimBtn').addEventListener('click', () => { initAudio(); claimDaily(false); });
+  $('claimAdBtn').addEventListener('click', () => {
+    initAudio();
+    if (!canClaimDaily()) return;
+    Platform.showRewarded(() => {}, (ok) => { if (ok) claimDaily(true); });
+  });
+
+  // ---------- Значок «Золотого часа» и точка на подарке — раз в секунду ----------
+  let goldenShown = false;
+  let lastDayKey = '';
+  function tickRewards() {
+    const on = goldenActive();
+    if (on) {
+      const s = Math.ceil((state.goldenUntil - Date.now()) / 1000);
+      const h = Math.floor(s / 3600);
+      const time = h ? `${h}:${pad2(Math.floor(s / 60) % 60)}:${pad2(s % 60)}` : `${Math.floor(s / 60)}:${pad2(s % 60)}`;
+      elGoldenBadge.textContent = `×2 · ${time}`;
+    }
+    if (on !== goldenShown) {
+      goldenShown = on;
+      elGoldenBadge.hidden = !on;
+      elSellBtn.classList.toggle('golden', on);
+      updateUI();               // пересчитать сумму продажи
+    }
+    const can = canClaimDaily();
+    elGiftDot.classList.toggle('on', can);
+    elGiftBtn.classList.toggle('has-reward', can);
+    // наступила полночь, пока панель открыта — перерисовываем
+    const key = todayKey();
+    if (openSheet === elRewardSheet) {
+      if (key !== lastDayKey) renderRewards();
+      else if (!can) updateRewardCountdown();
+    }
+    lastDayKey = key;
+  }
+  setInterval(tickRewards, 1000);
+
   // ================== Тексты интерфейса ==================
   function applyI18n() {
     document.documentElement.lang = lang;
@@ -2014,6 +2302,8 @@
     elLbBtn.title = t('lbBtn');
     elLbBtn.setAttribute('aria-label', t('lbBtn'));
     elShopBtn.setAttribute('aria-label', t('shop'));
+    elGiftBtn.title = t('rewardsBtn');
+    elGiftBtn.setAttribute('aria-label', t('rewardsBtn'));
   }
 
   // ================== Старт ==================
@@ -2049,6 +2339,9 @@
     Platform.submitScore(state.record);
     // для локальной проверки наград: crystalDev.grant('diamond') в консоли
     if (Platform.isLocal) window.crystalDev = { grant: grantExclusive };
+    // первый вход за день — окно наград открывается само
+    tickRewards();
+    if (canClaimDaily()) setTimeout(() => { if (!openSheet && !paused) openRewards(); }, 700);
   }
   boot();
 })();

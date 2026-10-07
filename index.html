@@ -35,6 +35,10 @@
           <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>
         </svg>
       </button>
+      <button class="icon-btn gift-btn" id="giftBtn" type="button" aria-label="Награды" title="Награды">
+        <span class="gift-emoji" aria-hidden="true">🎁</span>
+        <i class="shop-dot" id="giftDot"></i>
+      </button>
       <button class="icon-btn sound-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Выключить звук">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="spk" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
@@ -70,6 +74,7 @@
         <button class="sell-btn" id="sellBtn" type="button">
           <span class="sell-title" data-i18n="sell">Продать</span>
           <span class="sell-value" id="sellValue">+1 ◆</span>
+          <span class="golden-badge" id="goldenBadge" hidden></span>
         </button>
         <button class="shop-btn" id="shopBtn" type="button" aria-label="Магазин">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1.4 11.2A2 2 0 0 1 16.6 20H7.4a2 2 0 0 1-2-1.8L4 7Z"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7"/></svg>
@@ -111,6 +116,36 @@
     <div class="sheet-body">
       <div class="lb-list" id="lbList"></div>
       <div class="lb-footer" id="lbFooter"></div>
+    </div>
+  </section>
+
+  <section class="sheet" id="rewardSheet" role="dialog" aria-modal="true" aria-labelledby="rewardTitle">
+    <div class="sheet-head">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="rewardTitle" data-i18n="rewardsTitle">Награды за вход</h2>
+        <button class="sheet-close" type="button" data-close aria-label="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <p class="reward-sub" id="rewardSub"></p>
+      <div class="days-row" id="daysRow"></div>
+      <div class="month">
+        <div class="month-label" id="monthLabel"></div>
+        <div class="month-track">
+          <div class="month-fill" id="monthFill"></div>
+          <div class="month-marks" id="monthMarks"></div>
+        </div>
+      </div>
+      <div class="reward-today" id="rewardToday"></div>
+      <div class="reward-actions" id="rewardActions">
+        <button class="shop-buy reward-claim" id="claimBtn" type="button" data-i18n="claim">Забрать</button>
+        <button class="reward-ad" id="claimAdBtn" type="button">
+          <span class="reward-ad-title">📺 <span data-i18n="claimAd">Забрать ×2 за рекламу</span></span>
+          <span class="reward-ad-sub" id="claimAdSub"></span>
+        </button>
+      </div>
+      <div class="reward-next" id="rewardNext" hidden></div>
     </div>
   </section>
 
