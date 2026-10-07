@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#07061a">
+  <title>Кристалл: не разбей!</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- SDK Яндекс Игр (на платформе доступен по относительному пути) -->
+  <script src="/sdk.js" async onload="window.__ysdkLoaded && window.__ysdkLoaded()"></script>
+</head>
+<body>
+  <div id="app">
+    <header class="stats">
+      <div class="stat">
+        <span class="stat-label">Осколки</span>
+        <span class="stat-value" id="shards">0</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Размер</span>
+        <span class="stat-value" id="size">1</span>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Рекорд</span>
+        <span class="stat-value" id="record">1</span>
+      </div>
+    </header>
+
+    <main class="stage" id="stage">
+      <canvas id="game"></canvas>
+      <div class="hint" id="hint">Тапай по кристаллу в момент вспышки!</div>
+    </main>
+
+    <footer class="controls">
+      <div class="crack-bar-wrap">
+        <div class="crack-bar-label">
+          <span>Трещины</span>
+          <span id="crackPct">0%</span>
+        </div>
+        <div class="crack-bar">
+          <div class="crack-fill" id="crackFill"></div>
+        </div>
+      </div>
+      <button class="sell-btn" id="sellBtn" type="button">
+        <span class="sell-title">Продать</span>
+        <span class="sell-value" id="sellValue">+1 ◆</span>
+      </button>
+    </footer>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+</html>

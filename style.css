@@ -1,0 +1,225 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #07061a;
+  color: #e9e6ff;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+  overscroll-behavior: none;
+}
+
+body {
+  background:
+    radial-gradient(ellipse at 50% 45%, #1d1450 0%, #0d0a2b 45%, #07061a 100%);
+}
+
+#app {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 560px;
+  height: 100%;
+  height: 100dvh;
+  margin: 0 auto;
+  padding:
+    max(10px, env(safe-area-inset-top))
+    max(12px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-bottom))
+    max(12px, env(safe-area-inset-left));
+}
+
+/* ---------- Счётчики ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 4px;
+  border-radius: 14px;
+  background: rgba(120, 100, 255, 0.08);
+  border: 1px solid rgba(160, 140, 255, 0.18);
+  box-shadow: inset 0 0 18px rgba(120, 100, 255, 0.08);
+}
+
+.stat-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9c95d6;
+}
+
+.stat-value {
+  margin-top: 2px;
+  font-size: clamp(18px, 5.2vw, 24px);
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(140, 200, 255, 0.6);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stat-value.bump {
+  animation: bump 0.25s ease-out;
+}
+
+@keyframes bump {
+  40% { transform: scale(1.18); }
+}
+
+/* ---------- Сцена ---------- */
+.stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+#game {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.hint {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 6px;
+  text-align: center;
+  font-size: 14px;
+  color: #a9a2e6;
+  opacity: 0.85;
+  pointer-events: none;
+  transition: opacity 0.6s;
+}
+
+.hint.hidden {
+  opacity: 0;
+}
+
+/* ---------- Нижняя панель ---------- */
+.controls {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.crack-bar-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #b7b0ee;
+  margin-bottom: 5px;
+}
+
+#crackPct {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.crack-bar {
+  position: relative;
+  height: 14px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.crack-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #4fe3c1, #f5d547 55%, #ff4d6d);
+  background-size: 100vw 100%;
+  box-shadow: 0 0 12px rgba(255, 120, 120, 0.4);
+  transition: width 0.15s ease-out;
+}
+
+.crack-bar.danger {
+  animation: danger 0.5s infinite alternate;
+}
+
+@keyframes danger {
+  to { box-shadow: 0 0 14px rgba(255, 60, 90, 0.8); border-color: rgba(255, 80, 100, 0.8); }
+}
+
+.sell-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 62px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 18px;
+  font-family: inherit;
+  color: #1a0f3a;
+  background: linear-gradient(180deg, #9ff3ff 0%, #6fb8ff 50%, #8a6bff 100%);
+  box-shadow:
+    0 0 22px rgba(120, 180, 255, 0.45),
+    inset 0 2px 0 rgba(255, 255, 255, 0.6),
+    inset 0 -3px 0 rgba(60, 30, 140, 0.35);
+  cursor: pointer;
+  transition: transform 0.08s, filter 0.2s, opacity 0.2s;
+}
+
+.sell-btn:active {
+  transform: scale(0.97);
+}
+
+.sell-btn:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+  cursor: default;
+}
+
+.sell-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.sell-value {
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.85;
+}
+
+@media (hover: hover) {
+  .sell-btn:not(:disabled):hover {
+    filter: brightness(1.08);
+  }
+}
+
+@media (max-height: 560px) {
+  .stat { padding: 5px 4px; }
+  .sell-btn { min-height: 50px; }
+  .sell-title { font-size: 17px; }
+  .hint { font-size: 12px; }
+}
