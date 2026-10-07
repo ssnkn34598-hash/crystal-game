@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#07061a">
+  <meta name="version" content="1.1.0">
   <title>Кристалл: не разбей!</title>
   <link rel="stylesheet" href="style.css">
   <!-- SDK Яндекс Игр. На платформе отдаётся по этому пути; локально файла нет — игра работает без него -->
@@ -45,6 +46,9 @@
           <path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
           <path class="cross" d="M16 9.5l5 5M21 9.5l-5 5"/>
         </svg>
+      </button>
+      <button class="icon-btn friends-btn" id="friendsBtn" type="button" aria-label="Друзья" title="Друзья">
+        <span class="gift-emoji" aria-hidden="true">👥</span>
       </button>
       <div class="hint" id="hint" data-i18n="hint">Тапай по кристаллу в момент вспышки!</div>
 
@@ -146,6 +150,47 @@
         </button>
       </div>
       <div class="reward-next" id="rewardNext" hidden></div>
+    </div>
+  </section>
+
+  <section class="sheet" id="friendSheet" role="dialog" aria-modal="true" aria-labelledby="friendTitle">
+    <div class="sheet-head">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="friendTitle" data-i18n="friendsTitle">Друзья</h2>
+        <button class="sheet-close" type="button" data-close aria-label="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <div class="info-hero" id="friendHero"></div>
+      <p class="info-text" id="friendText"></p>
+      <div class="friend-status" id="friendStatus"></div>
+      <div class="friend-link" id="friendLinkWrap" hidden>
+        <div class="friend-link-label" data-i18n="copyManual">Скопируй ссылку и отправь другу:</div>
+        <input class="friend-link-input" id="friendLink" type="text" readonly>
+      </div>
+      <button class="shop-buy reward-claim" id="shareBtn" type="button" data-i18n="share">Поделиться</button>
+    </div>
+  </section>
+
+  <section class="sheet" id="infoSheet" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="sheet-head">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="infoTitle"></h2>
+        <button class="sheet-close" type="button" data-close aria-label="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <div class="info-hero" id="infoHero"></div>
+      <p class="info-text" id="infoText"></p>
+      <div class="reward-actions">
+        <button class="shop-buy reward-claim" id="infoClaim" type="button" data-i18n="claim">Забрать</button>
+        <button class="reward-ad" id="infoAd" type="button">
+          <span class="reward-ad-title">📺 <span data-i18n="claimAd">Забрать ×2 за рекламу</span></span>
+          <span class="reward-ad-sub" id="infoAdSub"></span>
+        </button>
+      </div>
     </div>
   </section>
 

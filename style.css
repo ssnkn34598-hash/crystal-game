@@ -556,6 +556,7 @@ body {
 .sound-btn { right: 0; }
 .lb-btn { left: 0; color: #ffd98a; }
 .gift-btn { left: 0; top: 54px; }
+.friends-btn { right: 0; top: 54px; }
 .gift-emoji { font-size: 22px; line-height: 1; }
 .gift-btn .shop-dot { top: -3px; right: -3px; }
 .gift-btn.has-reward { animation: gift-wiggle 2.4s ease-in-out infinite; }
@@ -1073,6 +1074,93 @@ body.loading #app { opacity: 0; }
   .days-row { gap: 3px; }
   .day-amount { font-size: 10px; }
   .day-icon { font-size: 17px; }
+}
+
+/* ---------- Окна «Друзья» и уведомления ---------- */
+.info-hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+  font-size: 46px;
+  line-height: 1;
+}
+
+.info-hero svg {
+  width: 52px;
+  height: 58px;
+  filter: drop-shadow(0 0 12px hsl(300, 90%, 65%));
+}
+
+.info-hero:empty { display: none; }
+
+.info-text {
+  margin: 0 2px 14px;
+  font-size: 15px;
+  line-height: 1.45;
+  text-align: center;
+  color: #d8d4ff;
+}
+
+.info-text b { color: #ffd98a; }
+
+.friend-status {
+  margin: 0 2px 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ffd98a;
+  background: rgba(255, 210, 100, 0.08);
+  border: 1px solid rgba(255, 210, 100, 0.25);
+}
+
+.friend-status:empty { display: none; }
+.friend-status.done { color: #4fe3c1; background: rgba(79, 227, 193, 0.08); border-color: rgba(79, 227, 193, 0.3); }
+
+.friend-link { margin: 0 2px 12px; }
+.friend-link[hidden] { display: none; }
+
+.friend-link-label {
+  margin-bottom: 6px;
+  font-size: 13px;
+  color: #b7b0ee;
+}
+
+.friend-link-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  border: 1px solid rgba(159, 243, 255, 0.5);
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-family: inherit;
+  font-size: 14px;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+#shareBtn[hidden] { display: none; }
+
+/* ---------- Широкий экран: сцена на всё окно ---------- */
+@media (orientation: landscape) {
+  #game {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    z-index: 0;
+  }
+
+  .stats,
+  .controls {
+    position: relative;
+    z-index: 1;
+  }
 }
 
 /* ---------- Эксклюзивные кристаллы ---------- */

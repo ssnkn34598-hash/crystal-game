@@ -3,6 +3,7 @@
 
   // ================== Настройки баланса ==================
   const CFG = {
+    version: '1.1.0',
     pulsePeriod: 1000,      // мс между вспышками
     perfectBefore: 110,     // окно «Идеально» до пика вспышки, мс
     perfectAfter: 140,      // окно «Идеально» после пика вспышки, мс
@@ -58,6 +59,18 @@
       claimAdSub: (s) => `Посмотреть рекламу и получить: ${s}`,
       nextIn: (s) => `Следующая награда через <b>${s}</b>`,
       kilo: 'К', mega: 'М',
+      friendsBtn: 'Друзья', friendsTitle: 'Друзья',
+      friendsText: 'Отправь другу ссылку на игру. Друг получит <b>Кристалл дружбы</b> и подарок осколков, а ты получишь <b>Кристалл дружбы</b> за первое приглашение.',
+      invitePending: '🎁 За первое приглашение — Кристалл дружбы', inviteDone: '✓ Награда за приглашение получена',
+      share: 'Поделиться', shareText: 'Играй со мной в «Кристалл: не разбей!» — по ссылке тебя ждёт подарок!',
+      shared: 'Приглашение отправлено!', copied: 'Ссылка скопирована — отправь её другу!',
+      copyManual: 'Скопируй ссылку и отправь другу:',
+      friendsOffline: 'Приглашения доступны в игре на Яндекс Играх.',
+      friendGiftTitle: 'Подарок от друга!',
+      friendGiftText: (n) => `Друг пригласил тебя в игру. Держи <b>Кристалл дружбы</b> и <b>${n} ◆</b>!`,
+      offlineTitle: 'С возвращением!',
+      offlineText: (n, time) => `Пока тебя не было (${time}), помощники собрали <b>${n} ◆</b>`,
+      duration: (h, m) => (h ? `${h} ч ${m} мин` : `${m} мин`),
       soundOn: 'Включить звук', soundOff: 'Выключить звук', close: 'Закрыть',
       reviveTitle: 'Кристалл разбит!', reviveText: (n) => `Потерян размер <b>${n}</b>`,
       reviveBtn: 'Склеить кристалл за рекламу', reviveSkip: 'Нет, спасибо',
@@ -103,6 +116,18 @@
       claimAdSub: (s) => `Watch an ad and get: ${s}`,
       nextIn: (s) => `Next reward in <b>${s}</b>`,
       kilo: 'K', mega: 'M',
+      friendsBtn: 'Friends', friendsTitle: 'Friends',
+      friendsText: 'Send a friend a link to the game. Your friend gets the <b>Friendship Crystal</b> and a gift of shards, and you get the <b>Friendship Crystal</b> for your first invite.',
+      invitePending: '🎁 First invite reward: Friendship Crystal', inviteDone: '✓ Invite reward received',
+      share: 'Share', shareText: 'Play "Crystal: Don\'t Break It!" with me — a gift is waiting for you!',
+      shared: 'Invite sent!', copied: 'Link copied — send it to a friend!',
+      copyManual: 'Copy the link and send it to a friend:',
+      friendsOffline: 'Invites are available when playing on Yandex Games.',
+      friendGiftTitle: 'A gift from a friend!',
+      friendGiftText: (n) => `A friend invited you to the game. Here's the <b>Friendship Crystal</b> and <b>${n} ◆</b>!`,
+      offlineTitle: 'Welcome back!',
+      offlineText: (n, time) => `While you were away (${time}), your helpers collected <b>${n} ◆</b>`,
+      duration: (h, m) => (h ? `${h} h ${m} min` : `${m} min`),
       soundOn: 'Sound on', soundOff: 'Sound off', close: 'Close',
       reviveTitle: 'Crystal shattered!', reviveText: (n) => `Size lost: <b>${n}</b>`,
       reviveBtn: 'Glue it back — watch an ad', reviveSkip: 'No, thanks',
@@ -276,6 +301,9 @@
       days: 0,               // дней в месячном календаре (0–30)
     },
     goldenUntil: 0,          // Date.now(), до которого действует «Золотой час»
+    friendCode: '',          // личный код для ссылки-приглашения (6 символов), создаётся один раз
+    friendGift: false,       // подарок по приглашению друга уже получен
+    inviteReward: false,     // Кристалл дружбы за первое приглашение уже выдан
   };
 
   let crackLines = [];       // геометрия трещин в единичных координатах
@@ -333,6 +361,9 @@
         days: Math.min(MONTH_DAYS, Math.max(0, Math.floor(num(dl.days, 0)))),
       };
       state.goldenUntil = Math.max(0, num(d.goldenUntil, 0));
+      state.friendCode = typeof d.friendCode === 'string' && /^[A-Z0-9]{6}$/.test(d.friendCode) ? d.friendCode : '';
+      state.friendGift = d.friendGift === true;
+      state.inviteReward = d.inviteReward === true;
       const up = d.upgrades || {};
       for (const u of UPGRADES) {
         state.upgrades[u.id] = Math.min(u.max, Math.max(0, Math.floor(num(up[u.id], 0))));
@@ -511,7 +542,8 @@
   }
 
   function crystalRadius() {
-    const base = Math.min(W, H * 0.62) * 0.36;
+    // на широком экране места больше — кристалл крупнее (до ~60% высоты сцены)
+    const base = wideLayout ? stageH * 0.3 : Math.min(W, H * 0.62) * 0.36;
     const growth = 1 - 1 / (1 + (state.size - 1) / 30);
     return base * (0.55 + 0.45 * growth);
   }
@@ -626,7 +658,7 @@
 
   // ================== Игровые действия ==================
   function crystalCenter() {
-    return { x: W / 2, y: H * 0.47 };
+    return { x: W / 2, y: stageTop + stageH * 0.47 };
   }
 
   function tap(px, py) {
@@ -1170,10 +1202,12 @@
 
   // ---------- Выезжающие панели (магазин, лидеры) ----------
   let openSheet = null;
+  const sheetCloseHandlers = new Map();   // панель → что сделать при закрытии любым способом
+  const sheetQueue = [];                  // окна, ждущие своей очереди (подарок, офлайн-доход, награды)
 
   function showSheet(el) {
     if (openSheet === el) return;
-    if (openSheet) hideSheet();
+    if (openSheet) closeCurrentSheet();
     openSheet = el;
     el.style.transform = '';
     el.classList.add('open');
@@ -1181,14 +1215,33 @@
     lastInput = performance.now();
   }
 
-  function hideSheet() {
-    if (!openSheet) return;
+  function closeCurrentSheet() {
     const el = openSheet;
     openSheet = null;
     el.style.transform = '';
     el.classList.remove('open');
     elBackdrop.classList.remove('open');
     if (el === elSheet) shopOpen = false;
+    const onClose = sheetCloseHandlers.get(el);
+    if (onClose) onClose();
+  }
+
+  function hideSheet() {
+    if (!openSheet) return;
+    closeCurrentSheet();
+    // следующее окно из очереди — когда текущее уехало
+    if (sheetQueue.length) setTimeout(runSheetQueue, 380);
+  }
+
+  function runSheetQueue() {
+    if (openSheet || paused || !sheetQueue.length) return;
+    sheetQueue.shift()();
+  }
+
+  // Открыть окно сразу, если ничего не открыто, иначе — после текущего
+  function queueSheet(open) {
+    sheetQueue.push(open);
+    runSheetQueue();
   }
 
   function openShop() {
@@ -1236,11 +1289,18 @@
   elExclusiveList.addEventListener('click', onShopClick);
 
   // ================== Отрисовка ==================
+  // На горизонтальном экране холст занимает всё окно (см. style.css), а кристалл
+  // стоит по центру области между счётчиками и кнопками — её и запоминаем
+  let stageTop = 0, stageH = 1, wideLayout = false;
   function resize() {
-    const rect = stage.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
+    const sr = stage.getBoundingClientRect();
     DPR = Math.min(window.devicePixelRatio || 1, 2);
     W = Math.max(1, rect.width);
     H = Math.max(1, rect.height);
+    stageTop = sr.top - rect.top;
+    stageH = Math.max(1, sr.height);
+    wideLayout = W > sr.width + 1;
     canvas.width = Math.round(W * DPR);
     canvas.height = Math.round(H * DPR);
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
@@ -1448,7 +1508,7 @@
       shatterPieces.push(...pendingPieces.pieces);
       pendingPieces = null;
     }
-    const floor = H - 6;
+    const floor = stageTop + stageH - 6;   // низ сцены, над панелью с кнопками
     for (let i = shatterPieces.length - 1; i >= 0; i--) {
       const p = shatterPieces[i];
       p.vy += 0.32 * K;
@@ -1703,6 +1763,7 @@
     } else {
       lastFrame = performance.now();
       Platform.gameplayStart();
+      setTimeout(runSheetQueue, 400);   // окна, отложенные на время паузы
     }
   }
   document.addEventListener('visibilitychange', () => {
@@ -1860,6 +1921,16 @@
     const isAuthorized = () => !!safe(() => player && player.isAuthorized());
     const playerId = () => safe(() => player.getUniqueID());
 
+    // ID игры на платформе — для ссылки-приглашения
+    const appId = () => safe(() => ysdk.environment.app.id) || '';
+    // payload из ссылки (?payload=...). Локально — из адреса страницы, чтобы можно было проверить подарок
+    function payload() {
+      const fromSdk = safe(() => ysdk.environment.payload);
+      if (fromSdk) return String(fromSdk);
+      if (isLocal) return new URLSearchParams(location.search).get('payload') || '';
+      return '';
+    }
+
     async function login() {
       if (!ysdk) return false;
       try {
@@ -1935,7 +2006,7 @@
     }
 
     return {
-      init, language, ready, gameplayStart, gameplayStop,
+      init, language, ready, gameplayStart, gameplayStop, appId, payload,
       loadCloud, saveCloud, flushCloud,
       submitScore, getLeaderboard, isAuthorized, playerId, login,
       maybeShowFullscreen, canShowRewarded, showRewarded,
@@ -2293,6 +2364,195 @@
   }
   setInterval(tickRewards, 1000);
 
+  // ================== Окно-уведомление с наградой ==================
+  // Используется для «Подарка от друга» и офлайн-дохода. Закрыть окно = забрать обычную награду.
+  const elInfoSheet = $('infoSheet');
+  let info = null;
+
+  function showInfo({ title, hero = '', html, adSub = '', onClaim }) {
+    info = { onClaim, claimed: false };
+    $('infoTitle').textContent = title;
+    $('infoHero').innerHTML = hero;
+    $('infoText').innerHTML = html;
+    $('infoAd').hidden = !adSub || !Platform.canShowRewarded();
+    $('infoAdSub').textContent = adSub;
+    showSheet(elInfoSheet);
+  }
+
+  function claimInfo(double) {
+    if (!info || info.claimed) return;
+    info.claimed = true;
+    const cb = info.onClaim;
+    if (openSheet === elInfoSheet) hideSheet();
+    cb(double);
+  }
+
+  enableSwipe(elInfoSheet);
+  sheetCloseHandlers.set(elInfoSheet, () => claimInfo(false));
+  $('infoClaim').addEventListener('click', () => { initAudio(); claimInfo(false); });
+  $('infoAd').addEventListener('click', () => {
+    initAudio();
+    if (!info || info.claimed) return;
+    Platform.showRewarded(() => {}, (ok) => { if (ok) claimInfo(true); });
+  });
+
+  // Начислить осколки с анимацией: вспышка, монетки к счётчику, звук покупки
+  function giveShards(n) {
+    if (n <= 0) return;
+    state.shards += n;
+    updateUI();
+    saveNow();
+    setTimeout(() => {
+      const c = crystalCenter();
+      const r = crystalRadius();
+      flash = 0.4;
+      flashHue = 45;
+      rings.push({ x: c.x, y: c.y, r: r * 0.5, life: 1, hue: 45, w: 6, speed: 7 });
+      burst(c.x, c.y, 28, 45, true, { star: true, speed: 8 });
+      addFloater(`+${formatNum(n)} ◆`, c.x, c.y - r * 0.3, '#9ff3ff', 1.4);
+      spawnCoins(c.x, c.y, Math.min(16, 6 + Math.floor(Math.log2(n + 1) / 2)));
+      sfx.buy();
+      bump(elShards);
+    }, 300);
+  }
+
+  // ================== Друзья: приглашения ==================
+  const elFriendSheet = $('friendSheet');
+  const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // без похожих 0/O, 1/I
+
+  function makeFriendCode() {
+    const bytes = new Uint8Array(6);
+    try { crypto.getRandomValues(bytes); } catch (e) { bytes.forEach((_, i) => { bytes[i] = Math.random() * 256; }); }
+    return Array.from(bytes, (b) => CODE_CHARS[b % CODE_CHARS.length]).join('');
+  }
+
+  function inviteLink() {
+    const domain = lang === 'ru' ? 'yandex.ru' : 'yandex.com';
+    return `https://${domain}/games/app/${Platform.appId()}?payload=friend_${state.friendCode}`;
+  }
+
+  function renderFriends(statusMsg) {
+    const online = Platform.available && !!Platform.appId();
+    $('friendHero').innerHTML = `👥${crystalIcon(crystalDef('friendship').hue)}`;
+    $('friendText').innerHTML = online ? t('friendsText') : t('friendsOffline');
+    $('shareBtn').hidden = !online;
+    if (!online) $('friendLinkWrap').hidden = true;
+    const st = $('friendStatus');
+    st.textContent = online ? statusMsg || (state.inviteReward ? t('inviteDone') : t('invitePending')) : '';
+    st.classList.toggle('done', !!statusMsg || state.inviteReward);
+  }
+
+  function openFriends() {
+    $('friendLinkWrap').hidden = true;
+    renderFriends();
+    showSheet(elFriendSheet);
+  }
+
+  // Ссылка отправлена или скопирована — за первое приглашение выдаём Кристалл дружбы
+  function inviteSent(msg) {
+    const first = !state.inviteReward;
+    state.inviteReward = true;
+    saveNow();
+    renderFriends(msg);
+    if (first && !state.exclusives.includes('friendship')) {
+      setTimeout(() => {
+        if (openSheet === elFriendSheet) hideSheet();
+        setTimeout(() => grantExclusive('friendship'), 350);
+      }, 900);
+    }
+  }
+
+  async function shareInvite() {
+    const url = inviteLink();
+    // 1) системное «Поделиться»
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: t('title'), text: t('shareText'), url });
+        inviteSent(t('shared'));
+        return;
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;   // игрок сам закрыл окно — ничего не делаем
+      }
+    }
+    // 2) буфер обмена
+    try {
+      await navigator.clipboard.writeText(url);
+      inviteSent(t('copied'));
+      return;
+    } catch (e) { /* нет доступа к буферу — показываем поле */ }
+    // 3) поле, из которого можно скопировать вручную
+    const input = $('friendLink');
+    input.value = url;
+    $('friendLinkWrap').hidden = false;
+    input.focus();
+    input.select();
+  }
+
+  elFriendSheet.addEventListener('pointerdown', (e) => e.stopPropagation());
+  $('friendsBtn').addEventListener('pointerdown', (e) => e.stopPropagation());
+  $('friendsBtn').addEventListener('click', openFriends);
+  $('shareBtn').addEventListener('click', () => { initAudio(); shareInvite(); });
+  $('friendLink').addEventListener('copy', () => inviteSent(t('copied')));
+  $('friendLink').addEventListener('focus', (e) => e.target.select());
+  enableSwipe(elFriendSheet);
+
+  // Пришёл по ссылке друга: подарок — Кристалл дружбы и осколки ×10 от базовой награды
+  function checkFriendGift() {
+    const m = /^friend_([A-Z0-9]{6})$/i.exec(Platform.payload());
+    if (!m || state.friendGift || m[1].toUpperCase() === state.friendCode) return;
+    const shards = baseReward() * 10;
+    queueSheet(() => showInfo({
+      title: t('friendGiftTitle'),
+      hero: `🎁${crystalIcon(crystalDef('friendship').hue)}`,
+      html: t('friendGiftText', formatNum(shards)),
+      onClaim: () => {
+        if (state.friendGift) return;
+        state.friendGift = true;
+        giveShards(shards);
+        if (!state.exclusives.includes('friendship')) setTimeout(() => grantExclusive('friendship'), 900);
+        saveNow();
+      },
+    }));
+  }
+
+  // ================== Офлайн-доход помощников ==================
+  const OFFLINE_MIN = 2 * 60 * 1000;
+  const OFFLINE_MAX = 8 * 60 * 60 * 1000;
+  let offlinePending = false;
+
+  function checkOffline(awayMs) {
+    const lvl = state.upgrades.helper;
+    if (!lvl || offlinePending || !(awayMs > OFFLINE_MIN)) return;
+    const ms = Math.min(awayMs, OFFLINE_MAX);
+    const income = Math.floor((ms / 1000) * lvl * crystalMult(state.crystal) * 0.5);
+    if (income <= 0) return;
+    const mins = Math.floor(ms / 60000);
+    offlinePending = true;
+    queueSheet(() => showInfo({
+      title: t('offlineTitle'),
+      hero: '🧚',
+      html: t('offlineText', formatNum(income), t('duration', Math.floor(mins / 60), mins % 60)),
+      adSub: t('claimAdSub', `+${formatNum(income * 2)} ◆`),
+      onClaim: (double) => {
+        offlinePending = false;
+        giveShards(income * (double ? 2 : 1));
+      },
+    }));
+  }
+
+  // возвращение во вкладку после долгого отсутствия
+  let hiddenAt = 0;
+  document.addEventListener('visibilitychange', () => {
+    if (!booted) return;
+    if (document.hidden) {
+      hiddenAt = Date.now();
+    } else if (hiddenAt) {
+      const away = Date.now() - hiddenAt;
+      hiddenAt = 0;
+      setTimeout(() => checkOffline(away), 400);
+    }
+  });
+
   // ================== Тексты интерфейса ==================
   function applyI18n() {
     document.documentElement.lang = lang;
@@ -2304,6 +2564,8 @@
     elShopBtn.setAttribute('aria-label', t('shop'));
     elGiftBtn.title = t('rewardsBtn');
     elGiftBtn.setAttribute('aria-label', t('rewardsBtn'));
+    $('friendsBtn').title = t('friendsBtn');
+    $('friendsBtn').setAttribute('aria-label', t('friendsBtn'));
   }
 
   // ================== Старт ==================
@@ -2320,6 +2582,8 @@
     const local = readLocal();
     const pick = (cloud && (!local || (cloud.savedAt || 0) > (local.savedAt || 0))) ? cloud : local;
     applySave(pick);
+    const lastSeen = state.savedAt;          // запоминаем до первого нового сохранения
+    if (!state.friendCode) state.friendCode = makeFriendCode();
 
     applyI18n();
     buildShop();
@@ -2339,9 +2603,14 @@
     Platform.submitScore(state.record);
     // для локальной проверки наград: crystalDev.grant('diamond') в консоли
     if (Platform.isLocal) window.crystalDev = { grant: grantExclusive };
-    // первый вход за день — окно наград открывается само
+    console.info(`Crystal: Don't Break It! v${CFG.version}`);
+    // окна при входе — по очереди: подарок от друга, офлайн-доход, ежедневная награда
     tickRewards();
-    if (canClaimDaily()) setTimeout(() => { if (!openSheet && !paused) openRewards(); }, 700);
+    setTimeout(() => {
+      checkFriendGift();
+      if (lastSeen) checkOffline(Date.now() - lastSeen);
+      if (canClaimDaily()) queueSheet(openRewards);
+    }, 700);
   }
   boot();
 })();
