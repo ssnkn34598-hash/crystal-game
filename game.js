@@ -14,32 +14,99 @@
     helperIdleLimit: 20000, // помощник работает, если игрок что-то делал за последние N мс
     priceGrowth: 1.5,       // каждый следующий уровень дороже в 1.5 раза
     saveKey: 'crystal_dont_break_v1',
+    leaderboard: 'biggestCrystal',   // техническое имя лидерборда в консоли Яндекс Игр
+    fullscreenInterval: 180000,      // полноэкранная реклама не чаще раза в 3 минуты
+    reviveMinSize: 5,                // меньше — нет смысла предлагать рекламу
+    reviveTimeout: 8000,             // сколько висит предложение склеить кристалл
+    reviveCracks: 40,                // склеенный кристалл остаётся с трещинами, %
+    cloudSaveInterval: 5000,         // облако: не чаще раза в 5 с (лимит 100 запросов / 5 мин)
   };
+
+  // ================== Локализация ==================
+  const I18N = {
+    ru: {
+      title: 'Кристалл: не разбей!',
+      shards: 'Осколки', size: 'Размер', record: 'Рекорд', cracks: 'Трещины',
+      sell: 'Продать', shop: 'Магазин', upgrades: 'Улучшения', crystals: 'Кристаллы',
+      hint: 'Тапай по кристаллу в момент вспышки!',
+      perfect: 'Идеально!', shattered: 'Разбит!', lostSize: (n) => `−${n} размера`,
+      glued: 'Склеено!',
+      level: (l) => `ур. ${l}`, maxLevel: ' (макс.)', max: 'Макс.', selected: 'Выбран', select: 'Выбрать',
+      sellMult: 'Осколки при продаже',
+      glueName: 'Клей', glueDesc: 'Трещины от тапа',
+      helperName: 'Помощник', helperDesc: 'Рост без трещин', perSec: '/сек',
+      rhythmName: 'Широкий ритм', rhythmDesc: 'Окно «Идеально»', ms: 'мс',
+      crystalNames: ['Кварц «Искра»', 'Рубин «Алое сердце»', 'Изумруд «Лесной страж»', 'Аметист «Звёздная пыль»'],
+      soundOn: 'Включить звук', soundOff: 'Выключить звук', close: 'Закрыть',
+      reviveTitle: 'Кристалл разбит!', reviveText: (n) => `Потерян размер <b>${n}</b>`,
+      reviveBtn: 'Склеить кристалл за рекламу', reviveSkip: 'Нет, спасибо',
+      adTest: 'Тестовая реклама…',
+      lbTitle: 'Самый большой кристалл', lbBtn: 'Лидеры', lbLoading: 'Загрузка…',
+      lbEmpty: 'Пока никого нет — стань первым!', lbError: 'Не удалось загрузить таблицу. Попробуйте позже.',
+      lbOffline: 'Таблица лидеров доступна в игре на Яндекс Играх.',
+      lbLogin: 'Войдите, чтобы ваш рекорд попал в таблицу.', lbLoginBtn: 'Войти',
+      lbYourRecord: (n) => `Ваш рекорд: <b>${n}</b>`, anon: 'Игрок',
+      million: ' млн', billion: ' млрд',
+    },
+    en: {
+      title: 'Crystal: Don\'t Break It!',
+      shards: 'Shards', size: 'Size', record: 'Record', cracks: 'Cracks',
+      sell: 'Sell', shop: 'Shop', upgrades: 'Upgrades', crystals: 'Crystals',
+      hint: 'Tap the crystal right when it flashes!',
+      perfect: 'Perfect!', shattered: 'Shattered!', lostSize: (n) => `−${n} size`,
+      glued: 'Glued!',
+      level: (l) => `lv. ${l}`, maxLevel: ' (max)', max: 'Max', selected: 'Selected', select: 'Select',
+      sellMult: 'Shards when sold',
+      glueName: 'Glue', glueDesc: 'Cracks per tap',
+      helperName: 'Helper', helperDesc: 'Crack-free growth', perSec: '/sec',
+      rhythmName: 'Wide Rhythm', rhythmDesc: '"Perfect" window', ms: 'ms',
+      crystalNames: ['Quartz "Spark"', 'Ruby "Scarlet Heart"', 'Emerald "Forest Guardian"', 'Amethyst "Stardust"'],
+      soundOn: 'Sound on', soundOff: 'Sound off', close: 'Close',
+      reviveTitle: 'Crystal shattered!', reviveText: (n) => `Size lost: <b>${n}</b>`,
+      reviveBtn: 'Glue it back — watch an ad', reviveSkip: 'No, thanks',
+      adTest: 'Test ad…',
+      lbTitle: 'Biggest Crystal', lbBtn: 'Leaders', lbLoading: 'Loading…',
+      lbEmpty: 'Nobody here yet — be the first!', lbError: 'Couldn\'t load the leaderboard. Try again later.',
+      lbOffline: 'The leaderboard is available when playing on Yandex Games.',
+      lbLogin: 'Sign in to get your record on the leaderboard.', lbLoginBtn: 'Sign in',
+      lbYourRecord: (n) => `Your record: <b>${n}</b>`, anon: 'Player',
+      million: 'M', billion: 'B',
+    },
+  };
+  // Русский для России и стран СНГ, для остальных — английский
+  const RU_LANGS = ['ru', 'be', 'kk', 'uk', 'uz'];
+  let lang = 'ru';
+  const t = (key, ...args) => {
+    const v = (I18N[lang] && I18N[lang][key]) ?? I18N.ru[key];
+    return typeof v === 'function' ? v(...args) : v;
+  };
+  const pickLang = (code) => (RU_LANGS.includes(String(code || '').slice(0, 2).toLowerCase()) ? 'ru' : 'en');
+  const fmtMult = (m) => (lang === 'ru' ? String(m).replace('.', ',') : String(m));
 
   // ================== Магазин ==================
   // Цены подобраны симуляцией: в первые 10 минут покупка примерно каждые 30–60 секунд
   const UPGRADES = [
     {
-      id: 'glue', name: 'Клей', icon: '🧴', basePrice: 150, max: 15,
-      desc: (l) => `Трещины от тапа: <b>−${pct(1 - glueFactor(l))}</b>` +
+      id: 'glue', icon: '🧴', basePrice: 150, max: 15,
+      desc: (l) => `${t('glueDesc')}: <b>−${pct(1 - glueFactor(l))}</b>` +
         (l < 15 ? ` → −${pct(1 - glueFactor(l + 1))}` : ''),
     },
     {
-      id: 'helper', name: 'Помощник', icon: '🧚', basePrice: 250, max: 25,
-      desc: (l) => `Рост без трещин: <b>+${l}/сек</b>` + (l < 25 ? ` → +${l + 1}/сек` : ''),
+      id: 'helper', icon: '🧚', basePrice: 250, max: 25,
+      desc: (l) => `${t('helperDesc')}: <b>+${l}${t('perSec')}</b>` + (l < 25 ? ` → +${l + 1}${t('perSec')}` : ''),
     },
     {
-      id: 'rhythm', name: 'Широкий ритм', icon: '🎵', basePrice: 180, max: 6,
-      desc: (l) => `Окно «Идеально»: <b>${perfectWindow(l)} мс</b>` +
-        (l < 6 ? ` → ${perfectWindow(l + 1)} мс` : ''),
+      id: 'rhythm', icon: '🎵', basePrice: 180, max: 6,
+      desc: (l) => `${t('rhythmDesc')}: <b>${perfectWindow(l)} ${t('ms')}</b>` +
+        (l < 6 ? ` → ${perfectWindow(l + 1)} ${t('ms')}` : ''),
     },
   ];
 
   const CRYSTALS = [
-    { name: 'Кварц «Искра»', short: 'Кварц', hue: 195, mult: 1, price: 0 },
-    { name: 'Рубин «Алое сердце»', short: 'Рубин', hue: 350, mult: 2, price: 900 },
-    { name: 'Изумруд «Лесной страж»', short: 'Изумруд', hue: 145, mult: 3.5, price: 5500 },
-    { name: 'Аметист «Звёздная пыль»', short: 'Аметист', hue: 275, mult: 6, price: 26000 },
+    { hue: 195, mult: 1, price: 0 },       // Кварц «Искра»
+    { hue: 350, mult: 2, price: 900 },     // Рубин «Алое сердце»
+    { hue: 145, mult: 3.5, price: 5500 },  // Изумруд «Лесной страж»
+    { hue: 275, mult: 6, price: 26000 },   // Аметист «Звёздная пыль»
   ];
 
   const glueFactor = (l) => Math.pow(0.9, l);
@@ -47,6 +114,7 @@
   const perfectAfter = (l) => CFG.perfectAfter + l * 25;
   const perfectWindow = (l) => perfectBefore(l) + perfectAfter(l);
   const pct = (x) => Math.round(x * 100) + '%';
+  const crystalName = (i) => t('crystalNames')[i];
   const upgradePrice = (u) => Math.ceil(u.basePrice * Math.pow(CFG.priceGrowth, state.upgrades[u.id]));
 
   // ================== DOM ==================
@@ -64,11 +132,18 @@
   const elSellValue = $('sellValue');
   const elHint = $('hint');
   const elSoundBtn = $('soundBtn');
+  const elLbBtn = $('lbBtn');
+  const elLbSheet = $('lbSheet');
+  const elLbList = $('lbList');
+  const elLbFooter = $('lbFooter');
+  const elRevive = $('revive');
+  const elReviveText = $('reviveText');
+  const elReviveTimer = $('reviveTimer');
+  const elAdOverlay = $('adOverlay');
   const elCrystalName = $('crystalName');
   const elShopBtn = $('shopBtn');
   const elShopDot = $('shopDot');
   const elSheet = $('sheet');
-  const elSheetHead = $('sheetHead');
   const elBackdrop = $('sheetBackdrop');
   const elShopShards = $('shopShards');
   const elUpgradeList = $('upgradeList');
@@ -85,6 +160,7 @@
     crystalOwned: 0,         // самый дорогой купленный кристалл
     crystal: 0,              // выбранный кристалл
     muted: false,
+    savedAt: 0,              // время сохранения — по нему выбираем между облаком и localStorage
   };
 
   let crackLines = [];       // геометрия трещин в единичных координатах
@@ -117,17 +193,23 @@
   let pendingPieces = null;  // осколки ждут конца «стоп-кадра» при разбитии
 
   // ================== Сохранение ==================
-  function load() {
+  function readLocal() {
     try {
       const raw = localStorage.getItem(CFG.saveKey);
-      if (!raw) return;
-      const d = JSON.parse(raw);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+  }
+
+  function applySave(d) {
+    if (!d || typeof d !== 'object') return;
+    try {
       const num = (v, def) => (typeof v === 'number' && isFinite(v) ? v : def);
       state.shards = Math.max(0, Math.floor(num(d.shards, 0)));
       state.size = Math.max(1, Math.floor(num(d.size, 1)));
       state.cracks = Math.min(99, Math.max(0, num(d.cracks, 0)));
       state.record = Math.max(state.size, Math.floor(num(d.record, 1)));
       state.totalTaps = Math.max(0, Math.floor(num(d.totalTaps, 0)));
+      state.savedAt = Math.max(0, num(d.savedAt, 0));
       state.muted = d.muted === true;
       const up = d.upgrades || {};
       for (const u of UPGRADES) {
@@ -138,13 +220,17 @@
     } catch (e) { /* повреждённое сохранение — начинаем заново */ }
   }
 
+  // Сохраняем локально всегда, а в облако — с ограничением частоты (см. Platform)
   let saveTimer = 0;
   function saveNow() {
     clearTimeout(saveTimer);
     saveTimer = 0;
+    state.savedAt = Date.now();
     try {
       localStorage.setItem(CFG.saveKey, JSON.stringify(state));
     } catch (e) { /* хранилище недоступно */ }
+    Platform.saveCloud(state);
+    Platform.submitScore(state.record);
   }
   function save() {
     if (!saveTimer) saveTimer = setTimeout(saveNow, 400);
@@ -272,8 +358,8 @@
     state.muted = m;
     if (master) master.gain.setTargetAtTime(m ? 0 : 0.9, audio.currentTime, 0.02);
     elSoundBtn.classList.toggle('muted', m);
-    elSoundBtn.setAttribute('aria-label', m ? 'Включить звук' : 'Выключить звук');
-    elSoundBtn.title = m ? 'Включить звук' : 'Выключить звук';
+    elSoundBtn.setAttribute('aria-label', m ? t('soundOn') : t('soundOff'));
+    elSoundBtn.title = m ? t('soundOn') : t('soundOff');
     saveNow();
   }
 
@@ -413,7 +499,7 @@
 
   function tap(px, py) {
     const now = performance.now();
-    if (now < brokenUntil) return;
+    if (now < brokenUntil || paused || !booted) return;
     lastInput = now;
     initAudio();
     elHint.classList.add('hidden');
@@ -439,7 +525,7 @@
       perfectCombo++;
       state.size += CFG.growPerfect;
       sfx.perfect();
-      const label = perfectCombo > 1 ? `Идеально! ×${perfectCombo}` : 'Идеально!';
+      const label = perfectCombo > 1 ? `${t('perfect')} ×${perfectCombo}` : t('perfect');
       addFloater(label, c.x, c.y - r * 1.15, '#ffe27a', 1.35);
       addFloater(`+${CFG.growPerfect}`, ex, ey - 10, '#bff8ff', 0.9);
       // вспышка: экран, кольца, звёздочки и лучи
@@ -550,8 +636,8 @@
     burst(c.x, c.y, 30, hue, true, { streak: true, speed: 16 });
     burst(c.x, c.y, 20, 0, true, { star: true, speed: 9, light: 100 });
 
-    addFloater('Разбит!', c.x, c.y - r * 0.2, '#ff6b81', 1.6);
-    addFloater(`−${lost} размера`, c.x, c.y + r * 0.35, '#ff9fae', 0.9);
+    addFloater(t('shattered'), c.x, c.y - r * 0.2, '#ff6b81', 1.6);
+    addFloater(t('lostSize', lost), c.x, c.y + r * 0.35, '#ff9fae', 0.9);
     sfx.shatter();
     vibrate([25, 40, 45]);
 
@@ -562,11 +648,14 @@
     brokenUntil = performance.now() + 1200;
     appear = 0;
     saveNow();
+    if (lost >= CFG.reviveMinSize && Platform.canShowRewarded()) {
+      offerRevive({ size: lost });
+    }
   }
 
   function sell() {
     const now = performance.now();
-    if (now < brokenUntil || state.size < 2) return;
+    if (now < brokenUntil || state.size < 2 || paused || !booted) return;
     lastInput = now;
     initAudio();
 
@@ -582,6 +671,7 @@
     flash = 0.2;
     flashHue = 190;
     sfx.sell();
+    hideRevive();
 
     state.size = 1;
     state.cracks = 0;
@@ -590,6 +680,8 @@
     appear = 0;
     updateUI();
     saveNow();
+    // полноэкранная реклама — только здесь, между «раундами», и не чаще раза в 3 минуты
+    Platform.maybeShowFullscreen();
   }
 
   // Цена растёт чуть быстрее размера, чтобы большой кристалл был выгоднее,
@@ -693,9 +785,10 @@
 
   // ================== UI ==================
   function formatNum(n) {
-    if (n >= 1e9) return (n / 1e9).toFixed(1).replace('.', ',') + ' млрд';
-    if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' млн';
-    return Math.floor(n).toLocaleString('ru-RU');
+    const dec = (x) => (lang === 'ru' ? x.toFixed(1).replace('.', ',') : x.toFixed(1));
+    if (n >= 1e9) return dec(n / 1e9) + t('billion');
+    if (n >= 1e6) return dec(n / 1e6) + t('million');
+    return Math.floor(n).toLocaleString(lang === 'ru' ? 'ru-RU' : 'en-US');
   }
 
   function bump(el) {
@@ -762,7 +855,7 @@
       <div class="shop-item" data-up="${u.id}">
         <div class="shop-icon">${u.icon}</div>
         <div class="shop-info">
-          <div class="shop-name">${u.name}<span class="shop-level"></span></div>
+          <div class="shop-name">${t(u.id + 'Name')}<span class="shop-level"></span></div>
           <div class="shop-desc"></div>
         </div>
         <button class="shop-buy" type="button"></button>
@@ -771,8 +864,8 @@
       <div class="shop-item" data-crystal="${i}" style="--item-color: hsl(${c.hue},90%,65%)">
         <div class="shop-icon">${crystalIcon(c.hue)}</div>
         <div class="shop-info">
-          <div class="shop-name">${c.name}</div>
-          <div class="shop-desc">Осколки при продаже: <b>×${String(c.mult).replace('.', ',')}</b></div>
+          <div class="shop-name">${crystalName(i)}</div>
+          <div class="shop-desc">${t('sellMult')}: <b>×${fmtMult(c.mult)}</b></div>
         </div>
         <button class="shop-buy" type="button"></button>
       </div>`).join('');
@@ -784,11 +877,11 @@
       const u = UPGRADES.find((x) => x.id === el.dataset.up);
       const l = state.upgrades[u.id];
       const btn = el.querySelector('.shop-buy');
-      el.querySelector('.shop-level').textContent = ` · ур. ${l}${l >= u.max ? ' (макс.)' : ''}`;
+      el.querySelector('.shop-level').textContent = ` · ${t('level', l)}${l >= u.max ? t('maxLevel') : ''}`;
       el.querySelector('.shop-desc').innerHTML = u.desc(l);
       btn.classList.remove('ghost');
       if (l >= u.max) {
-        btn.textContent = 'Макс.';
+        btn.textContent = t('max');
         btn.disabled = true;
         btn.classList.add('done');
       } else {
@@ -805,11 +898,11 @@
       el.classList.toggle('active', i === state.crystal);
       btn.classList.remove('ghost', 'done');
       if (i === state.crystal) {
-        btn.textContent = 'Выбран';
+        btn.textContent = t('selected');
         btn.disabled = true;
         btn.classList.add('done');
       } else if (i <= state.crystalOwned) {
-        btn.textContent = 'Выбрать';
+        btn.textContent = t('select');
         btn.disabled = false;
         btn.classList.add('ghost');
       } else if (i === state.crystalOwned + 1) {
@@ -854,57 +947,72 @@
   function updateCrystalName() {
     const c = CRYSTALS[state.crystal];
     elCrystalName.style.setProperty('--crystal-color', `hsl(${c.hue}, 90%, 72%)`);
-    elCrystalName.innerHTML = `${c.name}<small>×${String(c.mult).replace('.', ',')}</small>`;
+    elCrystalName.innerHTML = `${crystalName(state.crystal)}<small>×${fmtMult(c.mult)}</small>`;
   }
 
-  function openShop() {
-    if (shopOpen) return;
-    shopOpen = true;
-    renderShop();
-    elSheet.style.transform = '';
-    elSheet.classList.add('open');
+  // ---------- Выезжающие панели (магазин, лидеры) ----------
+  let openSheet = null;
+
+  function showSheet(el) {
+    if (openSheet === el) return;
+    if (openSheet) hideSheet();
+    openSheet = el;
+    el.style.transform = '';
+    el.classList.add('open');
     elBackdrop.classList.add('open');
     lastInput = performance.now();
   }
 
-  function closeShop() {
-    if (!shopOpen) return;
-    shopOpen = false;
-    elSheet.style.transform = '';
-    elSheet.classList.remove('open');
+  function hideSheet() {
+    if (!openSheet) return;
+    const el = openSheet;
+    openSheet = null;
+    el.style.transform = '';
+    el.classList.remove('open');
     elBackdrop.classList.remove('open');
+    if (el === elSheet) shopOpen = false;
   }
 
-  // Свайп вниз за шапку панели закрывает магазин
-  (() => {
+  function openShop() {
+    shopOpen = true;
+    renderShop();
+    showSheet(elSheet);
+  }
+  const closeShop = hideSheet;
+
+  // Свайп вниз за шапку панели закрывает её
+  function enableSwipe(sheet) {
+    const head = sheet.querySelector('.sheet-head');
     let startY = 0, dy = 0, dragging = false;
-    elSheetHead.addEventListener('pointerdown', (e) => {
+    head.addEventListener('pointerdown', (e) => {
       if (e.target.closest('button')) return;
       dragging = true;
       startY = e.clientY;
       dy = 0;
-      elSheet.classList.add('dragging');
-      elSheetHead.setPointerCapture(e.pointerId);
+      sheet.classList.add('dragging');
+      head.setPointerCapture(e.pointerId);
     });
-    elSheetHead.addEventListener('pointermove', (e) => {
+    head.addEventListener('pointermove', (e) => {
       if (!dragging) return;
       dy = Math.max(0, e.clientY - startY);
-      elSheet.style.transform = `translate(-50%, ${dy}px)`;
+      sheet.style.transform = `translate(-50%, ${dy}px)`;
     });
     const end = () => {
       if (!dragging) return;
       dragging = false;
-      elSheet.classList.remove('dragging');
-      elSheet.style.transform = '';
-      if (dy > 80) closeShop();
+      sheet.classList.remove('dragging');
+      sheet.style.transform = '';
+      if (dy > 80) hideSheet();
     };
-    elSheetHead.addEventListener('pointerup', end);
-    elSheetHead.addEventListener('pointercancel', end);
-  })();
+    head.addEventListener('pointerup', end);
+    head.addEventListener('pointercancel', end);
+    sheet.querySelector('[data-close]').addEventListener('click', hideSheet);
+  }
+  enableSwipe(elSheet);
+  enableSwipe(elLbSheet);
 
   elShopBtn.addEventListener('click', openShop);
-  $('sheetClose').addEventListener('click', closeShop);
-  elBackdrop.addEventListener('click', closeShop);
+  elBackdrop.addEventListener('click', hideSheet);
   elUpgradeList.addEventListener('click', onShopClick);
   elCrystalList.addEventListener('click', onShopClick);
 
@@ -1105,7 +1213,7 @@
       const g = rings[i];
       g.r += (g.speed || 4) * K;
       g.life -= 0.03 * K;
-      if (g.life <= 0) { rings.splice(i, 1); continue; }
+      if (g.life <= 0 || g.r <= 0) { rings.splice(i, 1); continue; }
       const c = g.x !== undefined ? g : crystalCenter();
       ctx.strokeStyle = g.white
         ? `rgba(255, 255, 255, ${g.life * 0.8})`
@@ -1341,8 +1449,10 @@
   });
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
-    if (e.code === 'Escape' || e.code === 'KeyM') { shopOpen ? closeShop() : (e.code === 'KeyM' && openShop()); return; }
-    if (shopOpen) return;
+    if (paused || !booted) return;
+    if (e.code === 'Escape') { hideSheet(); return; }
+    if (e.code === 'KeyM') { shopOpen ? closeShop() : openShop(); return; }
+    if (openSheet) return;
     if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); tap(); }
     if (e.code === 'KeyS') sell();
     if (e.code === 'KeyN') setMuted(!state.muted);
@@ -1355,8 +1465,13 @@
   window.addEventListener('resize', resize);
   if (window.ResizeObserver) new ResizeObserver(resize).observe(stage);
 
-  // ================== Пауза при сворачивании ==================
-  function setPaused(p) {
+  // ================== Пауза ==================
+  // Игра стоит, если есть хотя бы одна причина: вкладка скрыта, идёт реклама, пауза от платформы
+  const pauseReasons = new Set();
+  function setPause(reason, on) {
+    if (on) pauseReasons.add(reason);
+    else pauseReasons.delete(reason);
+    const p = pauseReasons.size > 0;
     if (paused === p) return;
     paused = p;
     if (audio) {
@@ -1365,43 +1480,412 @@
     }
     if (p) {
       saveNow();
-      ysdkGameplay('stop');
+      Platform.gameplayStop();
     } else {
-      ysdkGameplay('start');
+      lastFrame = performance.now();
+      Platform.gameplayStart();
     }
   }
-  document.addEventListener('visibilitychange', () => setPaused(document.hidden));
-  window.addEventListener('pagehide', saveNow);
+  document.addEventListener('visibilitychange', () => {
+    setPause('hidden', document.hidden);
+    if (document.hidden) Platform.flushCloud();
+  });
+  window.addEventListener('pagehide', () => { saveNow(); Platform.flushCloud(); });
   window.addEventListener('blur', saveNow);
 
-  // ================== Яндекс Игры SDK ==================
-  let ysdk = null;
-  function ysdkGameplay(action) {
+  // ================== Платформа: Яндекс Игры SDK ==================
+  // Все обращения к SDK — только здесь. Без SDK (локальный запуск) методы
+  // становятся заглушками, и игра работает как обычная страница.
+  const Platform = (() => {
+    let ysdk = null;
+    let player = null;
+    let canSetScore = false;
+    let gameplayOn = false;
+    let lastFullscreen = Date.now();  // платформа сама показывает рекламу при запуске — отсчёт с него
+    let adShowing = false;
+    // локальная заглушка рекламы — только при запуске с диска или localhost
+    const isLocal = ['file:'].includes(location.protocol) ||
+      ['localhost', '127.0.0.1', ''].includes(location.hostname);
+
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), ms)),
+    ]);
+    const safe = (fn) => { try { return fn(); } catch (e) { return undefined; } };
+
+    async function init() {
+      if (!window.YaGames) return false;
+      try {
+        ysdk = await withTimeout(window.YaGames.init(), 6000);
+      } catch (e) {
+        ysdk = null;
+        return false;
+      }
+      // пауза/возобновление от самой платформы (её оверлеи, реклама и т.д.)
+      safe(() => ysdk.on('game_api_pause', () => setPause('sdk', true)));
+      safe(() => ysdk.on('game_api_resume', () => setPause('sdk', false)));
+      await initPlayer();
+      return true;
+    }
+
+    async function initPlayer() {
+      try {
+        player = await withTimeout(ysdk.getPlayer(), 4000);
+      } catch (e) {
+        player = null;
+      }
+      try {
+        canSetScore = !!(await ysdk.isAvailableMethod('leaderboards.setScore'));
+      } catch (e) {
+        canSetScore = false;
+      }
+    }
+
+    function language() {
+      const sdkLang = safe(() => ysdk.environment.i18n.lang);
+      return pickLang(sdkLang || navigator.language);
+    }
+
+    function ready() {
+      safe(() => ysdk.features.LoadingAPI && ysdk.features.LoadingAPI.ready());
+      gameplayStart();
+    }
+
+    function gameplayStart() {
+      if (!ysdk || gameplayOn || paused) return;
+      gameplayOn = true;
+      safe(() => ysdk.features.GameplayAPI && ysdk.features.GameplayAPI.start());
+    }
+
+    function gameplayStop() {
+      if (!ysdk || !gameplayOn) return;
+      gameplayOn = false;
+      safe(() => ysdk.features.GameplayAPI && ysdk.features.GameplayAPI.stop());
+    }
+
+    // ---------- Облачные сохранения ----------
+    let cloudPending = null;
+    let cloudLast = 0;
+    let cloudTimer = 0;
+
+    async function loadCloud() {
+      if (!player) return null;
+      try {
+        const data = await withTimeout(player.getData(['save']), 4000);
+        return data && data.save && typeof data.save === 'object' ? data.save : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function sendCloud(flush) {
+      if (!player || !cloudPending) return;
+      const data = cloudPending;
+      cloudPending = null;
+      cloudLast = Date.now();
+      safe(() => player.setData({ save: data }, flush).catch(() => {}));
+    }
+
+    function saveCloud(st) {
+      if (!player) return;
+      cloudPending = JSON.parse(JSON.stringify(st));
+      const wait = CFG.cloudSaveInterval - (Date.now() - cloudLast);
+      if (wait <= 0) sendCloud(false);
+      else if (!cloudTimer) {
+        cloudTimer = setTimeout(() => { cloudTimer = 0; sendCloud(false); }, wait);
+      }
+    }
+
+    function flushCloud() {
+      clearTimeout(cloudTimer);
+      cloudTimer = 0;
+      sendCloud(true);
+    }
+
+    // ---------- Лидерборд ----------
+    let scoreSent = 0;
+    let scoreWanted = 0;
+    let scoreTimer = 0;
+    let scoreLast = 0;
+
+    function submitScore(score) {
+      if (!ysdk || !canSetScore) return;
+      scoreWanted = Math.max(scoreWanted, Math.floor(score));
+      if (scoreWanted <= scoreSent || scoreTimer) return;
+      // лимит платформы — 1 запрос в секунду; шлём не чаще раза в 2 с
+      const wait = Math.max(0, 2000 - (Date.now() - scoreLast));
+      scoreTimer = setTimeout(() => {
+        scoreTimer = 0;
+        const value = scoreWanted;
+        scoreLast = Date.now();
+        safe(() => ysdk.leaderboards.setScore(CFG.leaderboard, value)
+          .then(() => { scoreSent = Math.max(scoreSent, value); })
+          .catch(() => {}));
+      }, wait);
+    }
+
+    let lbCache = null;
+    let lbCacheAt = 0;
+    async function getLeaderboard(force) {
+      if (!ysdk) return null;
+      // лимит getEntries — 20 запросов за 5 минут, поэтому кешируем на минуту
+      if (!force && lbCache && Date.now() - lbCacheAt < 60000) return lbCache;
+      const res = await withTimeout(ysdk.leaderboards.getEntries(CFG.leaderboard, {
+        quantityTop: 10, includeUser: true, quantityAround: 2,
+      }), 6000);
+      lbCache = res;
+      lbCacheAt = Date.now();
+      return res;
+    }
+
+    const isAuthorized = () => !!safe(() => player && player.isAuthorized());
+    const playerId = () => safe(() => player.getUniqueID());
+
+    async function login() {
+      if (!ysdk) return false;
+      try {
+        await ysdk.auth.openAuthDialog();
+      } catch (e) {
+        return false;
+      }
+      await initPlayer();
+      scoreSent = 0;
+      return isAuthorized();
+    }
+
+    // ---------- Реклама ----------
+    function mockAd(ms, cb) {
+      $('adText').textContent = t('adTest');
+      elAdOverlay.hidden = false;
+      setTimeout(() => { elAdOverlay.hidden = true; cb(); }, ms);
+    }
+
+    function beginAd() {
+      adShowing = true;
+      setPause('ad', true);
+    }
+    function endAd() {
+      adShowing = false;
+      setPause('ad', false);
+    }
+
+    function maybeShowFullscreen() {
+      if (adShowing || Date.now() - lastFullscreen < CFG.fullscreenInterval) return;
+      lastFullscreen = Date.now();
+      if (!ysdk) {
+        if (isLocal) { beginAd(); mockAd(1200, endAd); }
+        return;
+      }
+      beginAd();
+      try {
+        ysdk.adv.showFullscreenAdv({
+          callbacks: {
+            onClose: () => endAd(),
+            onError: () => endAd(),
+            onOffline: () => endAd(),
+          },
+        });
+      } catch (e) {
+        endAd();
+      }
+    }
+
+    const canShowRewarded = () => !!ysdk || isLocal;
+
+    // onReward вызывается только если просмотр засчитан
+    function showRewarded(onReward, onDone) {
+      if (adShowing) return;
+      let rewarded = false;
+      const finish = () => { endAd(); onDone && onDone(rewarded); };
+      beginAd();
+      if (!ysdk) {
+        mockAd(1500, () => { rewarded = true; onReward(); finish(); });
+        return;
+      }
+      try {
+        ysdk.adv.showRewardedVideo({
+          callbacks: {
+            onRewarded: () => { rewarded = true; onReward(); },
+            onClose: finish,
+            onError: finish,
+          },
+        });
+      } catch (e) {
+        finish();
+      }
+    }
+
+    return {
+      init, language, ready, gameplayStart, gameplayStop,
+      loadCloud, saveCloud, flushCloud,
+      submitScore, getLeaderboard, isAuthorized, playerId, login,
+      maybeShowFullscreen, canShowRewarded, showRewarded,
+      get available() { return !!ysdk; },
+    };
+  })();
+
+  // ================== Склеить кристалл за рекламу ==================
+  let reviveOffer = null;
+  let reviveShowTimer = 0;
+  let reviveHideTimer = 0;
+
+  function offerRevive(snapshot) {
+    reviveOffer = snapshot;
+    clearTimeout(reviveShowTimer);
+    // показываем, когда осколки разлетелись
+    reviveShowTimer = setTimeout(() => {
+      if (!reviveOffer) return;
+      elReviveText.innerHTML = t('reviveText', formatNum(reviveOffer.size));
+      elRevive.hidden = false;
+      elReviveTimer.style.transition = 'none';
+      elReviveTimer.style.transform = 'scaleX(1)';
+      void elReviveTimer.offsetWidth;
+      elReviveTimer.style.transition = `transform ${CFG.reviveTimeout}ms linear`;
+      elReviveTimer.style.transform = 'scaleX(0)';
+      clearTimeout(reviveHideTimer);
+      reviveHideTimer = setTimeout(hideRevive, CFG.reviveTimeout);
+    }, 650);
+  }
+
+  function hideRevive() {
+    reviveOffer = null;
+    clearTimeout(reviveShowTimer);
+    clearTimeout(reviveHideTimer);
+    elRevive.hidden = true;
+  }
+
+  function applyRevive(snap) {
+    // возвращаем потерянный размер; то, что успели вырастить заново, сохраняется
+    state.size = snap.size + (state.size - 1);
+    state.cracks = Math.max(state.cracks, CFG.reviveCracks);
+    if (state.size > state.record) state.record = state.size;
+    brokenUntil = 0;
+    crackLines = [];
+    syncCrackLines(true);
+    updateUI();
+    saveNow();
+  }
+
+  function reviveEffects() {
+    const c = crystalCenter();
+    const r = crystalRadius();
+    appear = 0.3;
+    flash = 0.45;
+    flashHue = 45;
+    perfectGlow = 1;
+    rings.push({ x: c.x, y: c.y, r: r * 1.6, life: 1, hue: 45, w: 5, speed: -5 });
+    burst(c.x, c.y, 30, 45, true, { star: true, speed: 7 });
+    addFloater(t('glued'), c.x, c.y - r * 1.1, '#ffe27a', 1.4);
+    sfx.perfect();
+  }
+
+  elRevive.addEventListener('pointerdown', (e) => e.stopPropagation());
+  $('reviveSkip').addEventListener('click', hideRevive);
+  $('reviveBtn').addEventListener('click', () => {
+    const snap = reviveOffer;
+    if (!snap) return;
+    hideRevive();
+    Platform.showRewarded(() => applyRevive(snap), (ok) => { if (ok) reviveEffects(); });
+  });
+
+  // ================== Лидерборд ==================
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"']/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  async function openLeaderboard() {
+    showSheet(elLbSheet);
+    const own = t('lbYourRecord', formatNum(state.record));
+    if (!Platform.available) {
+      elLbList.innerHTML = '';
+      elLbFooter.innerHTML = `${own}<br><br>${t('lbOffline')}`;
+      return;
+    }
+    elLbList.innerHTML = `<div class="lb-footer">${t('lbLoading')}</div>`;
+    elLbFooter.innerHTML = '';
+    let res;
     try {
-      const api = ysdk && ysdk.features && ysdk.features.GameplayAPI;
-      if (api) action === 'start' ? api.start() : api.stop();
-    } catch (e) { /* SDK недоступен */ }
+      res = await Platform.getLeaderboard();
+    } catch (e) {
+      elLbList.innerHTML = '';
+      elLbFooter.innerHTML = `${own}<br><br>${t('lbError')}`;
+      return;
+    }
+    renderLeaderboard(res, own);
   }
-  function initYandex() {
-    if (!window.YaGames || ysdk) return;
-    window.YaGames.init().then((sdk) => {
-      ysdk = sdk;
-      try { sdk.features.LoadingAPI && sdk.features.LoadingAPI.ready(); } catch (e) { /* */ }
-      ysdkGameplay('start');
-    }).catch(() => {});
+
+  function renderLeaderboard(res, own) {
+    const entries = (res && res.entries) || [];
+    const me = Platform.playerId();
+    let prevRank = 0;
+    elLbList.innerHTML = entries.length ? entries.map((e) => {
+      const p = e.player || {};
+      const avatar = p.getAvatarSrc ? p.getAvatarSrc('small') : '';
+      const gap = e.rank > prevRank + 1 && prevRank > 0 ? '<div class="lb-gap">⋯</div>' : '';
+      prevRank = e.rank;
+      return `${gap}<div class="lb-row${p.uniqueID && p.uniqueID === me ? ' me' : ''}">
+        <span class="lb-rank${e.rank <= 3 ? ' top' : ''}">${e.rank}</span>
+        <span class="lb-avatar"${avatar ? ` style="background-image:url('${encodeURI(avatar)}')"` : ''}></span>
+        <span class="lb-name">${escapeHtml(p.publicName || t('anon'))}</span>
+        <span class="lb-score">${formatNum(e.score)}</span>
+      </div>`;
+    }).join('') : `<div class="lb-footer">${t('lbEmpty')}</div>`;
+
+    if (Platform.isAuthorized()) {
+      elLbFooter.innerHTML = own;
+    } else {
+      elLbFooter.innerHTML = `${own}<br>${t('lbLogin')}<br><button class="shop-buy" type="button" id="lbLogin">${t('lbLoginBtn')}</button>`;
+      $('lbLogin').addEventListener('click', async () => {
+        if (await Platform.login()) {
+          Platform.submitScore(state.record);
+          try { renderLeaderboard(await Platform.getLeaderboard(true), own); } catch (e) { /* оставляем как есть */ }
+        }
+      });
+    }
   }
-  window.__ysdkLoaded = initYandex;
+
+  elLbBtn.addEventListener('pointerdown', (e) => e.stopPropagation());
+  elLbBtn.addEventListener('click', openLeaderboard);
+
+  // ================== Тексты интерфейса ==================
+  function applyI18n() {
+    document.documentElement.lang = lang;
+    document.title = t('title');
+    document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+    document.querySelectorAll('[data-close]').forEach((el) => el.setAttribute('aria-label', t('close')));
+    elLbBtn.title = t('lbBtn');
+    elLbBtn.setAttribute('aria-label', t('lbBtn'));
+    elShopBtn.setAttribute('aria-label', t('shop'));
+  }
 
   // ================== Старт ==================
-  load();
-  buildShop();
-  updateCrystalName();
-  resize();
-  syncCrackLines(true);
-  setMuted(state.muted);
-  updateUI();
-  if (state.totalTaps > 0) elHint.classList.add('hidden');
-  startTime = performance.now();
-  requestAnimationFrame(frame);
-  initYandex();
+  let booted = false;
+  async function boot() {
+    const hasSdk = await Platform.init();
+    lang = Platform.language();
+
+    // берём более свежее сохранение: из облака или локальное
+    const local = readLocal();
+    const cloud = hasSdk ? await Platform.loadCloud() : null;
+    const pick = (cloud && (!local || (cloud.savedAt || 0) > (local.savedAt || 0))) ? cloud : local;
+    applySave(pick);
+
+    applyI18n();
+    buildShop();
+    updateCrystalName();
+    resize();
+    syncCrackLines(true);
+    setMuted(state.muted);
+    updateUI();
+    if (state.totalTaps > 0) elHint.classList.add('hidden');
+    startTime = performance.now();
+    lastFrame = startTime;
+    setPause('hidden', document.hidden);
+    requestAnimationFrame(frame);
+    document.body.classList.remove('loading');
+    booted = true;
+    Platform.ready();
+    Platform.submitScore(state.record);
+  }
+  boot();
 })();

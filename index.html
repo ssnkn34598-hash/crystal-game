@@ -6,22 +6,22 @@
   <meta name="theme-color" content="#07061a">
   <title>Кристалл: не разбей!</title>
   <link rel="stylesheet" href="style.css">
-  <!-- SDK Яндекс Игр (на платформе доступен по относительному пути) -->
-  <script src="/sdk.js" async onload="window.__ysdkLoaded && window.__ysdkLoaded()"></script>
+  <!-- SDK Яндекс Игр. На платформе отдаётся по этому пути; локально файла нет — игра работает без него -->
+  <script src="/sdk.js"></script>
 </head>
-<body>
+<body class="loading">
   <div id="app">
     <header class="stats">
       <div class="stat">
-        <span class="stat-label">Осколки</span>
+        <span class="stat-label" data-i18n="shards">Осколки</span>
         <span class="stat-value" id="shards">0</span>
       </div>
       <div class="stat">
-        <span class="stat-label">Размер</span>
+        <span class="stat-label" data-i18n="size">Размер</span>
         <span class="stat-value" id="size">1</span>
       </div>
       <div class="stat">
-        <span class="stat-label">Рекорд</span>
+        <span class="stat-label" data-i18n="record">Рекорд</span>
         <span class="stat-value" id="record">1</span>
       </div>
     </header>
@@ -29,20 +29,37 @@
     <main class="stage" id="stage">
       <canvas id="game"></canvas>
       <div class="crystal-name" id="crystalName"></div>
-      <button class="sound-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Выключить звук">
+      <button class="icon-btn lb-btn" id="lbBtn" type="button" aria-label="Лидеры" title="Лидеры">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 4h8v5a4 4 0 0 1-8 0z"/>
+          <path d="M8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20h7M10 17h4"/>
+        </svg>
+      </button>
+      <button class="icon-btn sound-btn" id="soundBtn" type="button" aria-label="Выключить звук" title="Выключить звук">
         <svg viewBox="0 0 24 24" aria-hidden="true">
           <path class="spk" d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/>
           <path class="wave" d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11"/>
           <path class="cross" d="M16 9.5l5 5M21 9.5l-5 5"/>
         </svg>
       </button>
-      <div class="hint" id="hint">Тапай по кристаллу в момент вспышки!</div>
+      <div class="hint" id="hint" data-i18n="hint">Тапай по кристаллу в момент вспышки!</div>
+
+      <div class="revive" id="revive" hidden>
+        <div class="revive-title" data-i18n="reviveTitle">Кристалл разбит!</div>
+        <div class="revive-text" id="reviveText"></div>
+        <button class="revive-btn" id="reviveBtn" type="button">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="13" rx="2.5"/><path d="M10 9.2v4.6l4-2.3z"/></svg>
+          <span data-i18n="reviveBtn">Склеить кристалл за рекламу</span>
+        </button>
+        <button class="revive-skip" id="reviveSkip" type="button" data-i18n="reviveSkip">Нет, спасибо</button>
+        <div class="revive-timer"><i id="reviveTimer"></i></div>
+      </div>
     </main>
 
     <footer class="controls">
       <div class="crack-bar-wrap">
         <div class="crack-bar-label">
-          <span>Трещины</span>
+          <span data-i18n="cracks">Трещины</span>
           <span id="crackPct">0%</span>
         </div>
         <div class="crack-bar">
@@ -51,12 +68,12 @@
       </div>
       <div class="actions">
         <button class="sell-btn" id="sellBtn" type="button">
-          <span class="sell-title">Продать</span>
+          <span class="sell-title" data-i18n="sell">Продать</span>
           <span class="sell-value" id="sellValue">+1 ◆</span>
         </button>
         <button class="shop-btn" id="shopBtn" type="button" aria-label="Магазин">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16l-1.4 11.2A2 2 0 0 1 16.6 20H7.4a2 2 0 0 1-2-1.8L4 7Z"/><path d="M9 7V5.5a3 3 0 0 1 6 0V7"/></svg>
-          <span>Магазин</span>
+          <span data-i18n="shop">Магазин</span>
           <i class="shop-dot" id="shopDot"></i>
         </button>
       </div>
@@ -68,18 +85,39 @@
     <div class="sheet-head" id="sheetHead">
       <div class="sheet-handle"></div>
       <div class="sheet-title-row">
-        <h2 id="sheetTitle">Магазин</h2>
+        <h2 id="sheetTitle" data-i18n="shop">Магазин</h2>
         <div class="sheet-balance"><span id="shopShards">0</span> ◆</div>
-        <button class="sheet-close" id="sheetClose" type="button" aria-label="Закрыть">✕</button>
+        <button class="sheet-close" type="button" data-close aria-label="Закрыть">✕</button>
       </div>
     </div>
     <div class="sheet-body" id="sheetBody">
-      <h3 class="shop-section">Улучшения</h3>
+      <h3 class="shop-section" data-i18n="upgrades">Улучшения</h3>
       <div class="shop-list" id="upgradeList"></div>
-      <h3 class="shop-section">Кристаллы</h3>
+      <h3 class="shop-section" data-i18n="crystals">Кристаллы</h3>
       <div class="shop-list" id="crystalList"></div>
     </div>
   </section>
+
+  <section class="sheet" id="lbSheet" role="dialog" aria-modal="true" aria-labelledby="lbTitle">
+    <div class="sheet-head">
+      <div class="sheet-handle"></div>
+      <div class="sheet-title-row">
+        <h2 id="lbTitle" data-i18n="lbTitle">Самый большой кристалл</h2>
+        <button class="sheet-close" type="button" data-close aria-label="Закрыть">✕</button>
+      </div>
+    </div>
+    <div class="sheet-body">
+      <div class="lb-list" id="lbList"></div>
+      <div class="lb-footer" id="lbFooter"></div>
+    </div>
+  </section>
+
+  <div class="ad-overlay" id="adOverlay" hidden>
+    <div class="ad-box">
+      <div class="ad-spinner"></div>
+      <div id="adText"></div>
+    </div>
+  </div>
 
   <script src="game.js"></script>
 </body>

@@ -533,11 +533,10 @@ body {
   0% { filter: brightness(1.8); transform: scale(1.08); }
 }
 
-/* ---------- Кнопка звука ---------- */
-.sound-btn {
+/* ---------- Кнопки на сцене (звук, лидеры) ---------- */
+.icon-btn {
   position: absolute;
   top: 2px;
-  right: 0;
   z-index: 2;
   width: 44px;
   height: 44px;
@@ -551,9 +550,12 @@ body {
   transition: transform 0.08s, color 0.2s, background 0.2s;
 }
 
-.sound-btn:active { transform: scale(0.92); }
+.icon-btn:active { transform: scale(0.92); }
 
-.sound-btn svg {
+.sound-btn { right: 0; }
+.lb-btn { left: 0; color: #ffd98a; }
+
+.icon-btn svg {
   width: 24px;
   height: 24px;
   fill: none;
@@ -568,3 +570,217 @@ body {
 .sound-btn.muted { color: #7d76b3; background: rgba(255, 255, 255, 0.04); }
 .sound-btn.muted .wave { display: none; }
 .sound-btn.muted .cross { display: inline; }
+
+/* ---------- Загрузка ---------- */
+body.loading #app { opacity: 0; }
+#app { transition: opacity 0.35s; }
+
+/* ---------- Предложение склеить кристалл ---------- */
+.revive {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 3;
+  width: min(320px, calc(100% - 16px));
+  padding: 18px 16px 14px;
+  border-radius: 20px;
+  text-align: center;
+  background: rgba(22, 14, 56, 0.92);
+  border: 1px solid rgba(255, 120, 150, 0.45);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(255, 90, 130, 0.2);
+  transform: translate(-50%, -50%);
+  animation: revive-in 0.3s cubic-bezier(0.2, 1.4, 0.4, 1);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.revive[hidden] { display: none; }
+
+@keyframes revive-in {
+  from { transform: translate(-50%, -50%) scale(0.7); opacity: 0; }
+}
+
+.revive-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ff8fa3;
+}
+
+.revive-text {
+  margin: 6px 0 14px;
+  font-size: 14px;
+  color: #d8d4ff;
+}
+
+.revive-text b { color: #fff; }
+
+.revive-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 54px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  color: #1a0f3a;
+  background: linear-gradient(180deg, #ffe9a6, #ffbf5a);
+  box-shadow: 0 0 18px rgba(255, 190, 90, 0.45), inset 0 -3px 0 rgba(140, 70, 0, 0.3);
+  cursor: pointer;
+  animation: revive-pulse 1s infinite alternate;
+}
+
+.revive-btn svg {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linejoin: round;
+}
+
+.revive-btn svg path { fill: currentColor; }
+.revive-btn:active { transform: scale(0.97); }
+
+@keyframes revive-pulse {
+  to { box-shadow: 0 0 28px rgba(255, 190, 90, 0.75), inset 0 -3px 0 rgba(140, 70, 0, 0.3); }
+}
+
+.revive-skip {
+  margin-top: 8px;
+  min-height: 40px;
+  padding: 6px 16px;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: #9c95d6;
+  cursor: pointer;
+}
+
+.revive-timer {
+  height: 3px;
+  margin-top: 6px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.revive-timer i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: #ff8fa3;
+  transform-origin: left;
+}
+
+/* ---------- Лидерборд ---------- */
+.lb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+}
+
+.lb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 6px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.lb-row.me {
+  background: rgba(120, 220, 255, 0.12);
+  border: 1px solid rgba(120, 220, 255, 0.4);
+}
+
+.lb-gap {
+  text-align: center;
+  color: #6f68a8;
+  line-height: 1;
+}
+
+.lb-rank {
+  flex: 0 0 34px;
+  font-weight: 800;
+  color: #9c95d6;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-row:nth-child(1) .lb-rank.top { color: #ffd257; }
+.lb-row:nth-child(2) .lb-rank.top { color: #d7e1f0; }
+.lb-row:nth-child(3) .lb-rank.top { color: #f0a46b; }
+
+.lb-avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(160, 140, 255, 0.25) center / cover no-repeat;
+}
+
+.lb-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #fff;
+}
+
+.lb-score {
+  font-weight: 800;
+  color: #bff8ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.lb-footer {
+  padding: 14px 4px 6px;
+  text-align: center;
+  font-size: 14px;
+  color: #b7b0ee;
+}
+
+.lb-footer .shop-buy {
+  margin-top: 10px;
+}
+
+/* ---------- Реклама (заглушка для локального теста) ---------- */
+.ad-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.85);
+}
+
+.ad-overlay[hidden] { display: none; }
+
+.ad-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  color: #d8d4ff;
+  font-size: 16px;
+}
+
+.ad-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 4px solid rgba(255, 255, 255, 0.15);
+  border-top-color: #9ff3ff;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
