@@ -1,0 +1,16 @@
+# Зависимости и временный архив выгрузки на хостинг VK
+node_modules/
+vk/build.zip
+
+# Секреты: ключ доступа VK (MINI_APPS_ACCESS_TOKEN) передаётся только через переменную окружения.
+# Файлы, куда его могли бы записать, в Git не попадают.
+.env
+.env.*
+*.env
+.npmrc
+.config/
+configstore/
+*.token
+*-token.json
+vk-hosting-config.local.json
+npm-debug.log*

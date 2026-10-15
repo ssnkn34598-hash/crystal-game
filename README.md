@@ -135,13 +135,31 @@ HTML5-кликер для Яндекс Игр на чистом JavaScript (Canv
 
 ## Версия для ВКонтакте (VK Mini Apps)
 
-Папка `vk/` — отдельная готовая статика для VK (версия `1.1.0-vk`); `index.html` в корне папки.
-Архив для загрузки на хостинг VK: `crystal-game-vk.zip` (файлы в корне архива).
+Папка `vk/dist/` — отдельная готовая статика для VK (версия `1.1.0-vk`); `index.html` в корне папки.
+Архив с теми же файлами: `crystal-game-vk.zip` (файлы в корне архива).
+
+### Выгрузка на хостинг статики VK
+
+В `vk/` настроен `@vkontakte/vk-miniapps-deploy` (dev-зависимость), конфиг — `vk/vk-hosting-config.json`
+(`static_path: "dist"`, `app_id: 54812715`, все платформы → `index.html`, без вопросов, обновляются и dev-, и prod-ссылки).
+
+```sh
+cd vk
+npm install
+MINI_APPS_ACCESS_TOKEN=<ключ> npm run deploy
+```
+
+Ключ доступа передаётся **только** через переменную окружения — не записывайте его в конфиг или другие файлы
+(`.env` и подобные файлы перечислены в `.gitignore`). `update_prod` / `update_dev` в конфиге обязательны:
+без них в режиме `noprompt` хостинг обновляет только dev-ссылки, а инструмент бесконечно ждёт production.
+
+После каждой выгрузки адрес статики меняется, поэтому `localStorage` у игроков начинается с нуля —
+прогресс хранится в VK Storage (`VKWebAppStorageSet` / `VKWebAppStorageGet`), `localStorage` — только запасной вариант.
 Яндекс-версия (`index.html`, `style.css`, `game.js` в корне репозитория и `crystal-game.zip`) от неё не зависит.
 
-Отличия от Яндекс-версии — только объект `Platform` в `vk/game.js` и пара элементов интерфейса:
+Отличия от Яндекс-версии — только объект `Platform` в `vk/dist/game.js` и пара элементов интерфейса:
 
-- **VK Bridge 3.0.2** — локальная копия `vk/vk-bridge.min.js` (лицензия MIT, `vk-bridge.LICENSE.txt`), без CDN.
+- **VK Bridge 3.0.2** — локальная копия `vk/dist/vk-bridge.min.js` (лицензия MIT, `vk-bridge.LICENSE.txt`), без CDN.
   При запуске — `VKWebAppInit`. Вне VK (`bridge.isEmbedded() === false`) игра работает локально.
 - **Реклама за вознаграждение** (склейка кристалла, ×2 к наградам и офлайн-доходу): сначала `VKWebAppCheckNativeAds`
   (`ad_format: "reward"`), затем `VKWebAppShowNativeAds`; награда — только при `result === true`.
@@ -160,4 +178,4 @@ HTML5-кликер для Яндекс Игр на чистом JavaScript (Canv
   и мобильной версии сайта, поэтому в мобильном приложении VK подарок другу может не прийти
   (Кристалл дружбы пригласившему выдаётся везде).
 
-Проверить вне VK: открыть `vk/index.html` (реклама — тестовая заглушка, подарок друга — `?payload=friend_ABC234`).
+Проверить вне VK: открыть `vk/dist/index.html` (реклама — тестовая заглушка, подарок друга — `?payload=friend_ABC234`).

@@ -1,0 +1,12 @@
+{
+  "name": "crystal-game-vk",
+  "version": "1.1.0",
+  "private": true,
+  "description": "Кристалл: не разбей! — версия для VK Mini Apps",
+  "scripts": {
+    "deploy": "vk-miniapps-deploy"
+  },
+  "devDependencies": {
+    "@vkontakte/vk-miniapps-deploy": "^1.0.3"
+  }
+}
